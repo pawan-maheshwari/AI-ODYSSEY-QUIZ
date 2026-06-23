@@ -580,10 +580,33 @@ let timerId = null;
 let answered = false;
 let me = { correct:0, wrong:0, skip:0 };
 let lastTickLevel = 0;
+let isWaiting = false;
 
 // host-only
 let trainers = [];            // simulated classroom
 let dist = [];                // per-question {correct,wrong,skip}
+
+// BroadcastChannel for sync between host and players (tabs/windows)
+let bc = null;
+function initBroadcast() {
+  if (!bc) {
+    try {
+      bc = new BroadcastChannel('ai-odyssey-quiz');
+      bc.onmessage = (event) => {
+        const msg = event.data;
+        if (mode === 'player' && msg.type === 'new_question' && msg.qIndex !== undefined) {
+          qIndex = msg.qIndex;
+          isWaiting = false;
+          renderQuestionForPlayer();
+        } else if (mode === 'player' && msg.type === 'game_started') {
+          isWaiting = false;
+          qIndex = 0;
+          renderQuestionForPlayer();
+        }
+      };
+    } catch(e) {}
+  }
+}
 
 /* ---------- 7. Player join flow ---------- */
 function goPlayerJoin(){
@@ -596,7 +619,29 @@ function beginPlayer(){
   me.name = nm || ('Participant ' + (Math.floor(Math.random()*900)+100));
   me.avatar = chosenAvatar;
   mode = 'player';
-  startQuiz();
+  initBroadcast();
+  
+  // Show waiting screen
+  show('game');
+  isWaiting = true;
+  document.getElementById('qCounter').textContent = 'Waiting Room';
+  document.getElementById('qText').innerHTML = `
+    <div class="text-center py-12">
+      <div class="pokeball float mx-auto mb-6" style="--pokeball-size:120px"></div>
+      <h2 class="font-display text-3xl mb-4">Waiting for Host...</h2>
+      <p class="text-white/70 text-lg">The Odyssey is about to begin.<br>Stay ready!</p>
+      <div class="mt-8 text-sun/70 text-sm animate-pulse">Host will start shortly...</div>
+    </div>
+  `;
+  document.getElementById('answers').innerHTML = '';
+  document.getElementById('nextBtn').classList.add('hidden');
+  document.getElementById('hostMeter').classList.add('hidden');
+  document.getElementById('timerBall').style.display = 'none';
+  
+  // Broadcast join
+  try {
+    bc.postMessage({type: 'player_joined', name: me.name, avatar: me.avatar});
+  } catch(e){}
 }
 function startSolo(){
   ctx();
@@ -705,10 +750,16 @@ function renderLobby(){
 function startHostGame(){
   sndStart();
   mode = 'host';
+  initBroadcast();
   dist = QUESTIONS.map(()=>({correct:0,wrong:0,skip:0}));
   trainers.forEach(t=>{ t.score=0;t.correct=0;t.wrong=0;t.skip=0; });
   qIndex = 0; score = 0;
   startQuiz();
+  
+  // Notify players
+  try {
+    bc.postMessage({type: 'game_started'});
+  } catch(e){}
 }
 function startQuiz(){
   qIndex = 0; score = 0;
@@ -751,6 +802,13 @@ function renderQuestion(){
 
   startTimer();
   if(mode==='host') scheduleTrainerAnswers();
+
+  // Broadcast to players
+  if (mode === 'host' && bc) {
+    try {
+      bc.postMessage({type: 'new_question', qIndex: qIndex});
+    } catch(e){}
+  }
 }
 
 /* ---------- 12. Timer ---------- */
