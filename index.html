@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>AI ODYSSEY — AI Literacy Quiz Adventure</title>
+<meta name="description" content="A fun Pokémon-GO-style AI literacy quiz for kids 8–14. Host it on a big screen or play on your phone!" />
+
+<!-- Favicon: a tiny Pokéball, inline SVG -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%23fff' stroke='%23000' stroke-width='4'/%3E%3Cpath d='M2 50a48 48 0 0196 0z' fill='%23EF4444'/%3E%3Cline x1='2' y1='50' x2='98' y2='50' stroke='%23000' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='14' fill='%23fff' stroke='%23000' stroke-width='6'/%3E%3C/svg%3E" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          space:  '#0B1120',
+          space2: '#0F172A',
+          royal:  '#1E40AF',
+          royal2: '#2563EB',
+          sun:    '#FACC15',
+          sun2:   '#FDE047',
+          poke:   '#EF4444',
+          good:   '#22C55E',
+          bad:    '#EF4444',
+          skip:   '#F59E0B',
+        },
+        fontFamily: {
+          display: ['Fredoka', 'system-ui', 'sans-serif'],
+          body:    ['Nunito', 'system-ui', 'sans-serif'],
+        },
+      }
+    }
+  }
+</script>
+
+<style>
+  :root { --pokeball-size: 220px; }
+
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #fff;
+    background: #0B1120;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1,h2,h3,.font-display { font-family: 'Fredoka', system-ui, sans-serif; }
+
+  /* ---------- Starfield background ---------- */
+  .sky {
+    position: fixed; inset: 0; z-index: -2;
+    background:
+      radial-gradient(1200px 700px at 80% -10%, rgba(37,99,235,.55), transparent 60%),
+      radial-gradient(900px 600px at 10% 110%, rgba(250,204,21,.10), transparent 60%),
+      linear-gradient(160deg, #0B1120 0%, #0F172A 55%, #0B1120 100%);
+  }
+  .stars { position: fixed; inset: 0; z-index: -1; pointer-events: none; }
+  .star {
+    position: absolute; width: 2px; height: 2px; border-radius: 50%;
+    background: #fff; opacity: .8; animation: twinkle 3s infinite ease-in-out;
+  }
+  @keyframes twinkle { 0%,100%{opacity:.15; transform:scale(.6)} 50%{opacity:.95; transform:scale(1.2)} }
+
+  /* ---------- Pokéball ---------- */
+  .pokeball {
+    width: var(--pokeball-size); height: var(--pokeball-size);
+    border-radius: 50%; position: relative; flex: none;
+    background:
+      linear-gradient(#fff 0 0) bottom/100% 50% no-repeat,
+      linear-gradient(#EF4444 0 0) top/100% 50% no-repeat;
+    box-shadow: inset 0 0 0 6px #0B1120, 0 12px 40px rgba(0,0,0,.55);
+    overflow: hidden;
+  }
+  .pokeball::before { /* center band */
+    content:""; position:absolute; top:50%; left:0; right:0;
+    height: 12%; transform: translateY(-50%);
+    background:#0B1120;
+  }
+  .pokeball::after { /* center button */
+    content:""; position:absolute; top:50%; left:50%;
+    width: 28%; height: 28%; transform: translate(-50%,-50%);
+    background:#fff; border-radius:50%;
+    box-shadow: 0 0 0 5px #0B1120, 0 0 0 9px #fff, 0 0 0 12px #0B1120;
+  }
+  .pokeball.spin { animation: spin 1.1s linear infinite; }
+  .pokeball.wobble { animation: wobble 0.6s ease-in-out infinite; }
+  .pokeball.danger {
+    box-shadow: inset 0 0 0 6px #0B1120, 0 0 50px 6px rgba(239,68,68,.85), 0 12px 40px rgba(0,0,0,.55);
+    animation: wobble 0.35s ease-in-out infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes wobble { 0%,100%{transform:rotate(-7deg)} 50%{transform:rotate(7deg)} }
+
+  /* timer text sitting over the ball */
+  .timer-num {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-family:'Fredoka'; font-weight:700; color:#0B1120; font-size: 4rem; z-index:3;
+    text-shadow: 0 1px 0 rgba(255,255,255,.6);
+  }
+
+  /* ---------- Answer buttons ---------- */
+  .ans {
+    position: relative; width:100%; border:none; cursor:pointer;
+    border-radius: 1.25rem; padding: 1.15rem 1.25rem;
+    font-family:'Fredoka'; font-weight:600; font-size: 1.25rem; color:#fff;
+    text-align:left; transition: transform .08s ease, filter .15s ease, box-shadow .15s ease;
+    box-shadow: 0 8px 0 rgba(0,0,0,.35), 0 10px 24px rgba(0,0,0,.4);
+    display:flex; align-items:center; gap:1rem; line-height:1.2;
+  }
+  .ans:active { transform: translateY(4px); box-shadow: 0 4px 0 rgba(0,0,0,.35), 0 6px 16px rgba(0,0,0,.4); }
+  .ans:focus-visible { outline: 4px solid #FACC15; outline-offset: 3px; }
+  .ans .badge {
+    flex:none; width:2.6rem; height:2.6rem; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background: rgba(255,255,255,.22); font-weight:700; font-size:1.3rem;
+  }
+  .a-red    { background: linear-gradient(135deg,#F87171,#DC2626); }
+  .a-blue   { background: linear-gradient(135deg,#3B82F6,#1E40AF); }
+  .a-yellow { background: linear-gradient(135deg,#FDE047,#EAB308); color:#0B1120; }
+  .a-green  { background: linear-gradient(135deg,#4ADE80,#16A34A); }
+  .ans.correct-reveal { box-shadow:0 0 0 4px #22C55E, 0 0 28px 4px rgba(34,197,94,.7); filter:brightness(1.1); }
+  .ans.wrong-reveal   { opacity:.45; filter: grayscale(.4); }
+  .ans:disabled { cursor: default; }
+
+  /* ---------- Pill / panel ---------- */
+  .panel {
+    background: rgba(15,23,42,.72);
+    border: 1px solid rgba(250,204,21,.22);
+    backdrop-filter: blur(8px);
+    border-radius: 1.5rem;
+    box-shadow: 0 20px 60px rgba(0,0,0,.45);
+  }
+  .btn-primary {
+    font-family:'Fredoka'; font-weight:600;
+    background: linear-gradient(135deg,#FDE047,#FACC15);
+    color:#0B1120; border:none; cursor:pointer;
+    border-radius: 1rem; box-shadow: 0 7px 0 #B8860B, 0 10px 24px rgba(0,0,0,.4);
+    transition: transform .08s ease;
+  }
+  .btn-primary:active { transform: translateY(4px); box-shadow: 0 3px 0 #B8860B; }
+  .btn-primary:focus-visible { outline: 4px solid #fff; outline-offset:3px; }
+  .btn-ghost {
+    font-family:'Fredoka'; font-weight:500; cursor:pointer;
+    background: rgba(255,255,255,.08); color:#fff;
+    border:1px solid rgba(255,255,255,.25); border-radius:1rem;
+    transition: background .15s ease;
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,.16); }
+  .btn-ghost:focus-visible { outline: 4px solid #FACC15; outline-offset:3px; }
+
+  .screen { display:none; }
+  .screen.active { display:block; animation: pop .35s ease; }
+  @keyframes pop { from{opacity:0; transform: translateY(12px) scale(.98)} to{opacity:1; transform:none} }
+
+  .float { animation: float 4s ease-in-out infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+
+  .progress-track { height:14px; background: rgba(255,255,255,.12); border-radius:999px; overflow:hidden; }
+  .progress-fill { height:100%; background: linear-gradient(90deg,#FDE047,#FACC15); border-radius:999px; transition: width .25s linear; }
+
+  /* leaderboard medal */
+  .medal { width:3rem; height:3rem; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Fredoka'; font-weight:700; font-size:1.4rem; color:#0B1120; }
+
+  .confetti { position:fixed; width:10px; height:14px; top:-20px; z-index:50; border-radius:2px; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity:.9; } }
+
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(250,204,21,.4); border-radius:999px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body class="font-body">
+
+<div class="sky"></div>
+<div class="stars" id="stars"></div>
+
+<!-- ============================= HOME ============================= -->
+<section id="screen-home" class="screen active min-h-screen flex flex-col items-center justify-center px-5 py-10">
+  <div class="text-center max-w-3xl">
+    <div class="pokeball float mx-auto mb-6" style="--pokeball-size:160px"></div>
+    <p class="font-display tracking-[.3em] text-sun text-sm sm:text-base mb-2">CATCH THE KNOWLEDGE</p>
+    <h1 class="font-display font-bold text-5xl sm:text-7xl leading-none mb-3">
+      AI <span class="text-sun">ODYSSEY</span>
+    </h1>
+    <p class="text-white/80 text-lg sm:text-xl font-semibold mb-9 max-w-xl mx-auto">
+      A galaxy-hopping quiz to become an AI Trainer. 20 questions. 30 seconds each. Are you ready, Trainer?
+    </p>
+
+    <div class="grid sm:grid-cols-2 gap-4 max-w-xl mx-auto">
+      <button class="btn-primary text-2xl py-5 px-6" onclick="goHostSetup()">
+        🖥️ Host on Big Screen
+      </button>
+      <button class="btn-primary text-2xl py-5 px-6" onclick="goPlayerJoin()">
+        📱 Play on My Phone
+      </button>
+    </div>
+    <button class="btn-ghost mt-4 text-lg py-3 px-6" onclick="startSolo()">
+      ⚡ Quick Solo Practice
+    </button>
+
+    <p class="text-white/40 text-sm mt-8 max-w-md mx-auto">
+      Tip: Hosting? Open this on a big screen and let players scan the Pokéball QR with their phones.
+    </p>
+  </div>
+</section>
+
+<!-- ============================= HOST SETUP / LOBBY ============================= -->
+<section id="screen-host" class="screen min-h-screen px-5 py-8">
+  <div class="max-w-5xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="font-display text-3xl sm:text-4xl">🖥️ Host Lobby</h2>
+      <button class="btn-ghost py-2 px-4" onclick="show('home')">← Back</button>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="panel p-6 text-center">
+        <h3 class="font-display text-2xl text-sun mb-1">Scan to Join</h3>
+        <p class="text-white/70 mb-4 text-sm">Point your phone camera at the Pokéball code</p>
+        <div class="bg-white rounded-2xl p-4 inline-block mx-auto" id="qrcode"></div>
+        <p class="text-white/60 text-xs mt-3 break-all" id="joinUrl"></p>
+      </div>
+
+      <div class="panel p-6 flex flex-col">
+        <h3 class="font-display text-2xl text-sun mb-3">Participants in the Arena</h3>
+        <div id="lobbyList" class="grid grid-cols-2 gap-2 content-start flex-1 overflow-auto" style="max-height:280px"></div>
+        <p class="text-white/50 text-xs mt-3">
+          Demo: 20 simulated participants have joined (they appear below). <strong>For real sharing</strong>, upload this file to GitHub Pages (recommended) or Vercel. Then open the <strong>https://</strong> link on the big screen so participants can scan a working QR. Their answers would sync live in a full version (needs Firebase). Click Start to begin the demo — questions show on big screen while participants answer on phones.
+        </p>
+        <button class="btn-primary text-2xl py-4 mt-4" onclick="startHostGame()">🚀 Start the Odyssey</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================= GAME (shared host + player) ============================= -->
+<section id="screen-game" class="screen min-h-screen px-4 py-6 flex flex-col">
+  <!-- top bar -->
+  <div class="max-w-5xl w-full mx-auto flex items-center gap-3 mb-4">
+    <div class="font-display text-sun text-lg sm:text-2xl whitespace-nowrap" id="qCounter">Q 1/20</div>
+    <div class="progress-track flex-1"><div class="progress-fill" id="qProgress" style="width:5%"></div></div>
+    <div class="font-display text-lg sm:text-2xl whitespace-nowrap" id="scorePill">⭐ 0</div>
+  </div>
+
+  <div class="max-w-5xl w-full mx-auto flex-1 flex flex-col">
+    <!-- timer pokeball -->
+    <div class="flex justify-center my-2">
+      <div class="relative">
+        <div class="pokeball" id="timerBall" style="--pokeball-size:128px"></div>
+        <div class="timer-num" id="timerNum" style="font-size:2.6rem">30</div>
+      </div>
+    </div>
+
+    <!-- category eyebrow -->
+    <p class="text-center font-display tracking-widest text-sun/80 text-sm mb-1" id="qCategory">WHAT IS AI?</p>
+    <!-- question -->
+    <h2 class="font-display text-2xl sm:text-4xl text-center leading-tight mb-5 px-2" id="qText">Question goes here</h2>
+
+    <!-- answers -->
+    <div class="grid sm:grid-cols-2 gap-3 sm:gap-4 max-w-3xl w-full mx-auto" id="answers"></div>
+
+    <!-- host live answer meter -->
+    <div id="hostMeter" class="max-w-3xl w-full mx-auto mt-5 hidden">
+      <p class="text-center text-white/60 text-sm mb-2" id="answeredCount">0 participants locked in…</p>
+    </div>
+
+    <!-- feedback bubble -->
+    <div id="feedback" class="max-w-2xl w-full mx-auto mt-5 hidden">
+      <div class="panel p-4 sm:p-5 text-center">
+        <p class="font-display text-2xl mb-1" id="feedbackHead">Nice!</p>
+        <p class="text-white/85" id="feedbackBody">Explanation…</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-3xl w-full mx-auto mt-4 flex justify-center" id="nextWrap" >
+    <button class="btn-primary text-xl py-3 px-10 hidden" id="nextBtn" onclick="nextQuestion()">Next →</button>
+  </div>
+</section>
+
+<!-- ============================= PLAYER JOIN ============================= -->
+<section id="screen-join" class="screen min-h-screen flex flex-col items-center justify-center px-5 py-10">
+  <div class="panel p-6 sm:p-8 w-full max-w-md text-center">
+    <div class="pokeball mx-auto mb-4 float" style="--pokeball-size:96px"></div>
+    <h2 class="font-display text-3xl mb-1">Join the Odyssey</h2>
+    <p class="text-white/70 mb-5">Pick a Participant name and grab your Pokéballs!</p>
+
+    <input id="playerName" maxlength="14" placeholder="Your name (e.g. Alex)"
+      class="w-full text-center font-display text-2xl rounded-xl py-3 px-4 mb-4 bg-white/10 border border-white/25 text-white placeholder-white/40 focus:outline-none focus:ring-4 focus:ring-sun/60" />
+
+    <div class="grid grid-cols-4 gap-2 mb-5" id="avatarRow"></div>
+
+    <button class="btn-primary w-full text-2xl py-4 mb-3" onclick="beginPlayer()">Let's Go! ⚡</button>
+    <button class="btn-ghost w-full text-base py-3" onclick="toggleScanner()" id="scanBtn">📷 Scan host QR code</button>
+    <div id="reader" class="mt-4 rounded-xl overflow-hidden hidden"></div>
+
+    <button class="btn-ghost w-full text-sm py-2 mt-4 border-0" onclick="show('home')">← Back home</button>
+  </div>
+</section>
+
+<!-- ============================= PLAYER RESULTS ============================= -->
+<section id="screen-result" class="screen min-h-screen flex flex-col items-center justify-center px-5 py-10 text-center">
+  <div class="max-w-md w-full">
+    <div class="pokeball float mx-auto mb-5" style="--pokeball-size:120px" id="resultBall"></div>
+    <p class="font-display tracking-widest text-sun mb-1" id="rankTitle">AI TRAINER</p>
+    <h2 class="font-display text-5xl mb-2" id="resultScore">0</h2>
+    <p class="text-white/80 text-lg mb-6" id="resultMsg">Great adventure!</p>
+
+    <div class="panel p-5 grid grid-cols-3 gap-3 mb-6">
+      <div><div class="font-display text-3xl text-good" id="rCorrect">0</div><div class="text-xs text-white/60">Correct</div></div>
+      <div><div class="font-display text-3xl text-bad" id="rWrong">0</div><div class="text-xs text-white/60">Wrong</div></div>
+      <div><div class="font-display text-3xl text-skip" id="rSkip">0</div><div class="text-xs text-white/60">Skipped</div></div>
+    </div>
+
+    <button class="btn-primary w-full text-xl py-4 mb-3" onclick="startSolo()">🔁 Play Again</button>
+    <button class="btn-ghost w-full text-base py-3" onclick="show('home')">🏠 Home</button>
+  </div>
+</section>
+
+<!-- ============================= HOST DASHBOARD ============================= -->
+<section id="screen-dash" class="screen min-h-screen px-5 py-8">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-7">
+      <p class="font-display tracking-widest text-sun mb-1">FINAL RESULTS</p>
+      <h2 class="font-display text-4xl sm:text-5xl">🏆 Champion Participants</h2>
+    </div>
+
+    <!-- podium -->
+    <div class="grid grid-cols-3 gap-3 sm:gap-5 items-end max-w-2xl mx-auto mb-8" id="podium"></div>
+
+    <!-- stat row -->
+    <div class="grid grid-cols-3 gap-3 max-w-2xl mx-auto mb-8">
+      <div class="panel p-4 text-center"><div class="font-display text-3xl text-sun" id="dTotal">0</div><div class="text-xs text-white/60">Participants</div></div>
+      <div class="panel p-4 text-center"><div class="font-display text-3xl text-good" id="dAvg">0%</div><div class="text-xs text-white/60">Avg. correct</div></div>
+      <div class="panel p-4 text-center"><div class="font-display text-3xl" id="dTop">0</div><div class="text-xs text-white/60">Top score</div></div>
+    </div>
+
+    <!-- per question distribution -->
+    <h3 class="font-display text-2xl mb-3">Per-question breakdown</h3>
+    <div class="flex items-center gap-4 text-sm mb-4">
+      <span class="inline-flex items-center gap-2"><span class="w-3 h-3 rounded bg-good inline-block"></span>Correct</span>
+      <span class="inline-flex items-center gap-2"><span class="w-3 h-3 rounded bg-bad inline-block"></span>Wrong</span>
+      <span class="inline-flex items-center gap-2"><span class="w-3 h-3 rounded bg-skip inline-block"></span>Skipped</span>
+    </div>
+    <div class="space-y-2" id="distList"></div>
+
+    <div class="flex justify-center gap-3 mt-9">
+      <button class="btn-primary text-xl py-3 px-8" onclick="goHostSetup()">🔁 New Game</button>
+      <button class="btn-ghost text-xl py-3 px-8" onclick="show('home')">🏠 Home</button>
+    </div>
+  </div>
+</section>
+
+<script>
+/* =====================================================================
+   AI ODYSSEY — single-file AI literacy quiz
+   ===================================================================== */
+
+/* ---------- 1. Starfield ---------- */
+(function makeStars(){
+  const sky = document.getElementById('stars');
+  const n = window.innerWidth < 640 ? 60 : 120;
+  for (let i=0;i<n;i++){
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.left = Math.random()*100 + 'vw';
+    s.style.top = Math.random()*100 + 'vh';
+    s.style.animationDelay = (Math.random()*3) + 's';
+    s.style.opacity = 0.2 + Math.random()*0.8;
+    sky.appendChild(s);
+  }
+})();
+
+/* ---------- 2. Questions ---------- */
+const QUESTIONS = [
+  { cat:"What is AI?",
+    q:"What does “AI” stand for?",
+    options:["Automatic Internet","Artificial Intelligence","Amazing Inventions","Animal Instinct"],
+    correct:1,
+    explain:"AI means Artificial Intelligence — computers built to do things that usually need human smarts, like understanding words or spotting pictures." },
+
+  { cat:"Spot the AI",
+    q:"Which of these is an example of AI you might use every day?",
+    options:["A paper map","A voice assistant like Siri or Alexa","A pencil","A bicycle bell"],
+    correct:1,
+    explain:"Voice assistants use AI to understand your speech and answer back. The others are handy tools, but they don't think or learn." },
+
+  { cat:"Machine Learning",
+    q:"What is “machine learning”?",
+    options:["A robot going to school","Computers learning patterns from lots of examples","A new video game","Charging a phone battery"],
+    correct:1,
+    explain:"Machine learning is how computers get better at a task by studying tons of examples — a bit like how you learn by practising." },
+
+  { cat:"Machine Learning",
+    q:"How does AI learn to tell cats from dogs in photos?",
+    options:["It already knows everything","By looking at thousands of labeled cat and dog pictures","By asking the cats","By guessing randomly forever"],
+    correct:1,
+    explain:"The AI studies many example photos that are labeled 'cat' or 'dog' until it spots the patterns. More good examples = better guesses." },
+
+  { cat:"Generative AI",
+    q:"What is “generative AI”?",
+    options:["AI that deletes files","AI that creates new things like text, images, or music","AI that only does math","A type of battery"],
+    correct:1,
+    explain:"Generative AI makes brand-new content — stories, drawings, songs — based on patterns it learned. 'Generate' means 'to create'." },
+
+  { cat:"Generative AI",
+    q:"Which of these is a job for generative AI?",
+    options:["Telling you the time","Writing a poem about space","Turning on a light switch","Counting your steps"],
+    correct:1,
+    explain:"Writing a fresh poem is creating something new — that's generative AI. The others are simple tasks that don't need creativity." },
+
+  { cat:"Prompting",
+    q:"When you talk to an AI chatbot, what is a “prompt”?",
+    options:["A loud alarm","The instruction or question you give it","A type of robot","A high score"],
+    correct:1,
+    explain:"A prompt is what you type or say to the AI. Clear prompts get better answers — just like clear questions to a friend." },
+
+  { cat:"Prompting",
+    q:"Which prompt will likely get the most helpful answer?",
+    options:["“Stuff.”","“Tell me about a dog.”","“Explain why the sky is blue, in 3 simple sentences for a 10-year-old.”","“???”"],
+    correct:2,
+    explain:"Good prompts are specific: they say what you want, how long, and who it's for. The AI then knows exactly how to help." },
+
+  { cat:"AI Mistakes",
+    q:"Can AI ever be wrong or make mistakes?",
+    options:["No, AI is always perfect","Yes, AI can give wrong answers","Only on weekends","Only if it's raining"],
+    correct:1,
+    explain:"AI can be confidently wrong! It guesses from patterns, so always double-check important facts with a trusted source." },
+
+  { cat:"Fairness & Bias",
+    q:"What is “AI bias”?",
+    options:["When AI is unfair because of the data it learned from","When AI runs out of battery","When AI is too colorful","A kind of computer mouse"],
+    correct:0,
+    explain:"Bias means unfair results. If the examples an AI learns from aren't fair or balanced, its answers can be unfair too." },
+
+  { cat:"Fairness & Bias",
+    q:"Why might an AI end up being biased or unfair?",
+    options:["It learned from data that wasn't balanced or fair","It got bored","It was built on a Tuesday","Computers don't like vegetables"],
+    correct:0,
+    explain:"AI mirrors its training examples. If those examples leave people out or are one-sided, the AI can repeat that unfairness." },
+
+  { cat:"Deepfakes",
+    q:"What is a “deepfake”?",
+    options:["A deep swimming pool","A fake video or audio made by AI that looks or sounds real","A scary movie","A type of sandwich"],
+    correct:1,
+    explain:"Deepfakes are AI-made fakes — videos, photos, or voices that seem real but aren't. That's why we check before we trust." },
+
+  { cat:"Think Critically",
+    q:"You see a shocking video of a celebrity online. What's the smart move?",
+    options:["Share it instantly","Believe it no matter what","Check if it's real and where it came from","Yell at the screen"],
+    correct:2,
+    explain:"Pause and verify! Look for trusted sources before believing or sharing. Some videos are AI deepfakes designed to fool you." },
+
+  { cat:"Think Critically",
+    q:"Is it okay to believe everything an AI tells you?",
+    options:["Yes, always","No — check important facts yourself","Only if it uses big words","Only the first answer"],
+    correct:1,
+    explain:"AI is a helpful sidekick, not a know-it-all. For anything important, confirm with a book, website, or trusted adult." },
+
+  { cat:"Staying Safe",
+    q:"Should you share private info like your home address or passwords with a chatbot?",
+    options:["Yes, it's a secret keeper","No, keep private info private","Only your password","Only your address"],
+    correct:1,
+    explain:"Never share personal details like passwords, address, or phone number with AI or strangers online. Keep your info safe." },
+
+  { cat:"Responsible Use",
+    q:"What's the responsible way to use AI for your homework?",
+    options:["Copy its answer and pretend it's yours","Use it to learn and understand, then do your own work","Let it take your test","Never read what it says"],
+    correct:1,
+    explain:"AI is a study buddy. Use it to explain and explore — but do your own thinking so YOUR brain levels up too." },
+
+  { cat:"Staying Safe",
+    q:"If an AI ever says something that upsets or worries you, what should you do?",
+    options:["Keep it a secret","Tell a trusted adult","Turn off the lights","Argue with it for hours"],
+    correct:1,
+    explain:"Always tell a trusted adult — a parent, teacher, or guardian. They can help keep you safe online." },
+
+  { cat:"How AI Works",
+    q:"Can AI truly feel emotions like happiness or sadness, the way people do?",
+    options:["Yes, just like humans","No — it predicts patterns and doesn't really feel","Only when it wins","Only on its birthday"],
+    correct:1,
+    explain:"AI can use words about feelings, but it doesn't actually feel them. It's matching patterns, not experiencing emotions." },
+
+  { cat:"How AI Works",
+    q:"A “neural network” inside AI is loosely inspired by what?",
+    options:["A spider web","The human brain","A football field","A pizza"],
+    correct:1,
+    explain:"Neural networks are inspired by how brain cells (neurons) connect and pass signals — that's where the name comes from." },
+
+  { cat:"Responsible Use",
+    q:"You used AI to find facts for a school project. Best next step?",
+    options:["Trust every word with no checking","Double-check the facts and think for yourself","Add random emojis only","Delete your project"],
+    correct:1,
+    explain:"Smart trainers verify! Check AI facts against reliable sources and add your own thinking. That's real AI literacy." },
+];
+
+const TOTAL = QUESTIONS.length;
+const QUESTION_TIME = 30;
+
+/* ---------- 3. Audio (Web Audio API) ---------- */
+let audioCtx = null;
+function ctx(){
+  if(!audioCtx){
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e){ audioCtx = null; }
+  }
+  if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function tone(freq, dur, vol, type){
+  const c = ctx(); if(!c) return;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type || 'square';
+  o.frequency.value = freq;
+  g.gain.value = 0;
+  o.connect(g); g.connect(c.destination);
+  const t = c.currentTime;
+  g.gain.linearRampToValueAtTime(vol || 0.2, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+function sndTick(level){ // level 1..5, higher = more intense
+  const base = 600 + level*180;
+  tone(base, 0.16, 0.18 + level*0.04, 'square');
+}
+function sndTimeUp(){ tone(160,0.5,0.25,'sawtooth'); }
+function sndCorrect(){ [523,659,784,1046].forEach((f,i)=> setTimeout(()=>tone(f,0.18,0.22,'triangle'), i*90)); }
+function sndWrong(){ tone(300,0.18,0.2,'square'); setTimeout(()=>tone(200,0.3,0.2,'square'),140); }
+function sndJoin(){ tone(660,0.1,0.2,'triangle'); setTimeout(()=>tone(990,0.12,0.2,'triangle'),90); }
+function sndStart(){ [392,523,659,880].forEach((f,i)=> setTimeout(()=>tone(f,0.16,0.22,'triangle'), i*110)); }
+function sndWin(){ [523,659,784,1046,784,1046,1318].forEach((f,i)=> setTimeout(()=>tone(f,0.22,0.24,'triangle'), i*140)); }
+
+/* ---------- 4. Screen router ---------- */
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=> s.classList.remove('active'));
+  const el = document.getElementById('screen-'+id);
+  if(el) el.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+/* ---------- 5. Avatars ---------- */
+const AVATARS = ["⚡","🔥","💧","🌿","✨","🌙","🚀","🛸","🐉","🦊","🐱","🦉","🤖","👾","🌟","💎"];
+const TRAINER_NAMES = ["Pixel","Nova","Zappy","Echo","Luna","Bolt","Sage","Comet","Pip","Ziggy","Rey","Mango","Kai","Astra","Fizz","Juno","Tango","Bloom","Dash","Wren"];
+let chosenAvatar = "⚡";
+
+(function buildAvatarRow(){
+  const row = document.getElementById('avatarRow');
+  AVATARS.slice(0,8).forEach((a,i)=>{
+    const b = document.createElement('button');
+    b.textContent = a;
+    b.className = 'text-2xl rounded-xl py-2 bg-white/10 border border-white/15 hover:bg-white/20 transition';
+    if(i===0) b.style.outline = '3px solid #FACC15';
+    b.onclick = ()=>{
+      chosenAvatar = a;
+      [...row.children].forEach(c=> c.style.outline='none');
+      b.style.outline = '3px solid #FACC15';
+      sndJoin();
+    };
+    row.appendChild(b);
+  });
+})();
+
+/* ---------- 6. Game state ---------- */
+let mode = 'solo';            // 'solo' | 'player' | 'host'
+let qIndex = 0;
+let score = 0;
+let timeLeft = QUESTION_TIME;
+let timerId = null;
+let answered = false;
+let me = { correct:0, wrong:0, skip:0 };
+let lastTickLevel = 0;
+
+// host-only
+let trainers = [];            // simulated classroom
+let dist = [];                // per-question {correct,wrong,skip}
+
+/* ---------- 7. Player join flow ---------- */
+function goPlayerJoin(){
+  ctx(); // unlock audio on tap
+  mode = 'player';
+  show('join');
+}
+function beginPlayer(){
+  const nm = document.getElementById('playerName').value.trim();
+  me.name = nm || ('Participant ' + (Math.floor(Math.random()*900)+100));
+  me.avatar = chosenAvatar;
+  mode = 'player';
+  startQuiz();
+}
+function startSolo(){
+  ctx();
+  mode = 'solo';
+  me = { correct:0, wrong:0, skip:0, name:'You', avatar:'⚡' };
+  startQuiz();
+}
+
+/* ---------- 8. QR scanner (html5-qrcode) ---------- */
+let scanner = null, scanning = false;
+function toggleScanner(){
+  const reader = document.getElementById('reader');
+  const btn = document.getElementById('scanBtn');
+  if(scanning){
+    if(scanner){ scanner.stop().catch(()=>{}); }
+    reader.classList.add('hidden'); btn.textContent='📷 Scan host QR code'; scanning=false; return;
+  }
+  reader.classList.remove('hidden');
+  btn.textContent = 'Stop camera';
+  scanning = true;
+  scanner = new Html5Qrcode("reader");
+  scanner.start({ facingMode:"environment" }, { fps:10, qrbox:200 },
+    (txt)=>{
+      sndJoin();
+      scanner.stop().catch(()=>{});
+      reader.classList.add('hidden'); scanning=false;
+      if (txt && (txt.startsWith('http://') || txt.startsWith('https://'))) {
+        // Scanned the host QR → navigate to join link (triggers auto player mode)
+        btn.textContent='✅ Opening join link...';
+        setTimeout(() => { window.location.href = txt; }, 400);
+      } else {
+        btn.textContent='✅ Joined! Pick a name above';
+      }
+    },
+    ()=>{}
+  ).catch(err=>{
+    reader.innerHTML = '<p class="p-4 text-white/70 text-sm">Camera unavailable. You can still tap “Let’s Go!” to play. ('+err+')</p>';
+  });
+}
+
+/* ---------- 9. Host setup ---------- */
+function goHostSetup(){
+  ctx();
+  mode = 'host';
+  show('host');
+  
+  // Build join URL + QR (smart handling for local file:// vs hosted)
+  let base = location.href.split('?')[0].split('#')[0];
+  let joinUrl = base + '?role=player';
+  
+  // If local file:// (common during testing), show helpful fallback
+  const isLocal = location.protocol === 'file:';
+  if (isLocal) {
+    // Fallback to a placeholder - replace with your actual hosted URL
+    const hostedExample = 'https://pawanmaheshwari.github.io/ai-odyssey-quiz.html?role=player';
+    joinUrl = hostedExample;
+    document.getElementById('joinUrl').innerHTML = 
+      `<strong style="color:#FACC15">Local file detected!</strong><br>` +
+      `Upload to GitHub Pages / Vercel for shareable link.<br>` +
+      `<small style="opacity:0.7">Example: ${hostedExample}</small>`;
+  } else {
+    document.getElementById('joinUrl').textContent = joinUrl;
+  }
+  
+  const box = document.getElementById('qrcode');
+  box.innerHTML = '';
+  new QRCode(box, { 
+    text: joinUrl, 
+    width: 200, 
+    height: 200, 
+    colorDark:"#0B1120", 
+    colorLight:"#ffffff", 
+    correctLevel: QRCode.CorrectLevel.M 
+  });
+
+  // simulated classroom
+  buildTrainers();
+  renderLobby();
+}
+function buildTrainers(){
+  const count = 20; // exactly 20 participants as per use case
+  const names = [...TRAINER_NAMES].sort(()=>Math.random()-0.5).slice(0,count);
+  trainers = names.map((n,i)=>({
+    name:n,
+    avatar: AVATARS[(i+1)%AVATARS.length],
+    skill: 0.45 + Math.random()*0.5,      // chance of correct
+    speed: 0.4 + Math.random()*0.6,       // affects time bonus
+    score:0, correct:0, wrong:0, skip:0
+  }));
+}
+function renderLobby(){
+  const list = document.getElementById('lobbyList');
+  list.innerHTML = '';
+  trainers.forEach((t,i)=>{
+    setTimeout(()=>{
+      const chip = document.createElement('div');
+      chip.className = 'flex items-center gap-2 bg-white/8 rounded-xl px-3 py-2 border border-white/10';
+      chip.innerHTML = '<span class="text-xl">'+t.avatar+'</span><span class="font-semibold truncate">'+t.name+'</span>';
+      list.appendChild(chip);
+      sndJoin();
+    }, i*180);
+  });
+}
+
+/* ---------- 10. Start games ---------- */
+function startHostGame(){
+  sndStart();
+  mode = 'host';
+  dist = QUESTIONS.map(()=>({correct:0,wrong:0,skip:0}));
+  trainers.forEach(t=>{ t.score=0;t.correct=0;t.wrong=0;t.skip=0; });
+  qIndex = 0; score = 0;
+  startQuiz();
+}
+function startQuiz(){
+  qIndex = 0; score = 0;
+  me.correct=0; me.wrong=0; me.skip=0;
+  if(mode!=='host') dist = QUESTIONS.map(()=>({correct:0,wrong:0,skip:0}));
+  show('game');
+  document.getElementById('hostMeter').classList.toggle('hidden', mode!=='host');
+  renderQuestion();
+}
+
+/* ---------- 11. Render a question ---------- */
+function renderQuestion(){
+  answered = false;
+  lastTickLevel = 0;
+  const Q = QUESTIONS[qIndex];
+
+  document.getElementById('qCounter').textContent = 'Q '+(qIndex+1)+'/'+TOTAL;
+  document.getElementById('qProgress').style.width = (((qIndex)/TOTAL)*100)+'%';
+  document.getElementById('scorePill').textContent = '⭐ '+score;
+  document.getElementById('qCategory').textContent = Q.cat.toUpperCase();
+  document.getElementById('qText').textContent = Q.q;
+
+  // feedback + next hidden
+  document.getElementById('feedback').classList.add('hidden');
+  document.getElementById('nextBtn').classList.add('hidden');
+  document.getElementById('answeredCount').textContent = '0 participants locked in…';
+
+  // answers
+  const wrap = document.getElementById('answers');
+  wrap.innerHTML = '';
+  const palette = ['a-red','a-blue','a-yellow','a-green'];
+  const letters = ['A','B','C','D'];
+  Q.options.forEach((opt,i)=>{
+    const b = document.createElement('button');
+    b.className = 'ans '+palette[i];
+    b.innerHTML = '<span class="badge">'+letters[i]+'</span><span>'+opt+'</span>';
+    b.onclick = ()=> chooseAnswer(i);
+    wrap.appendChild(b);
+  });
+
+  startTimer();
+  if(mode==='host') scheduleTrainerAnswers();
+}
+
+/* ---------- 12. Timer ---------- */
+function startTimer(){
+  clearInterval(timerId);
+  timeLeft = QUESTION_TIME;
+  updateTimerUI();
+  timerId = setInterval(()=>{
+    timeLeft--;
+    updateTimerUI();
+    if(timeLeft <= 5 && timeLeft > 0){
+      const level = 6 - timeLeft;       // 1..5 rising
+      sndTick(level);
+    }
+    if(timeLeft <= 0){
+      clearInterval(timerId);
+      sndTimeUp();
+      if(!answered) timeOut();
+    }
+  },1000);
+}
+function updateTimerUI(){
+  document.getElementById('timerNum').textContent = timeLeft;
+  const ball = document.getElementById('timerBall');
+  ball.classList.remove('spin','danger');
+  if(timeLeft <= 5){ ball.classList.add('danger'); }
+  else { ball.classList.add('spin'); }
+}
+
+/* ---------- 13. Answer handling ---------- */
+function chooseAnswer(i){
+  if(answered) return;
+  answered = true;
+  clearInterval(timerId);
+  document.getElementById('timerBall').classList.remove('spin','danger');
+
+  const Q = QUESTIONS[qIndex];
+  const correct = (i === Q.correct);
+  const buttons = document.querySelectorAll('#answers .ans');
+
+  buttons.forEach((b,idx)=>{
+    b.disabled = true;
+    if(idx === Q.correct) b.classList.add('correct-reveal');
+    else if(idx === i) b.classList.add('wrong-reveal');
+    else b.classList.add('wrong-reveal');
+  });
+
+  if(correct){
+    const bonus = Math.round((timeLeft / QUESTION_TIME) * 500);
+    const pts = 500 + bonus;
+    score += pts;
+    me.correct++; dist[qIndex].correct++;
+    sndCorrect();
+    showFeedback(true, pts, Q.explain);
+    burstConfetti();
+  } else {
+    me.wrong++; dist[qIndex].wrong++;
+    sndWrong();
+    showFeedback(false, 0, Q.explain);
+  }
+  document.getElementById('scorePill').textContent = '⭐ '+score;
+  finishQuestionUI();
+}
+function timeOut(){
+  answered = true;
+  const Q = QUESTIONS[qIndex];
+  document.querySelectorAll('#answers .ans').forEach((b,idx)=>{
+    b.disabled = true;
+    if(idx === Q.correct) b.classList.add('correct-reveal');
+    else b.classList.add('wrong-reveal');
+  });
+  me.skip++; dist[qIndex].skip++;
+  showFeedback(null, 0, Q.explain);
+  finishQuestionUI();
+}
+function finishQuestionUI(){
+  document.getElementById('timerBall').classList.remove('danger','spin');
+  const nb = document.getElementById('nextBtn');
+  nb.classList.remove('hidden');
+  nb.textContent = (qIndex >= TOTAL-1) ? (mode==='host' ? 'See Results 🏆' : 'Finish 🏆') : 'Next →';
+  if(mode==='host') document.getElementById('answeredCount').textContent = trainers.length+' participants locked in ✅';
+}
+
+const ENC_RIGHT = ["Bullseye! 🎯","You caught it! ⚡","Brilliant, Participant!","Super effective! 💥","Genius move! 🌟","Nailed it! 🔥"];
+const ENC_WRONG = ["So close — now you know!","Good try! Every miss is a lesson.","Not quite, but you're learning!","Nice attempt — keep going!","Almost! You've got the next one."];
+const ENC_SKIP  = ["Time's up! Here's the answer.","Out of time — no worries!","The clock won that round!"];
+function showFeedback(state, pts, explain){
+  const fb = document.getElementById('feedback');
+  const head = document.getElementById('feedbackHead');
+  const body = document.getElementById('feedbackBody');
+  if(state === true){ head.textContent = pick(ENC_RIGHT)+' +'+pts; head.className='font-display text-2xl mb-1 text-good'; }
+  else if(state === false){ head.textContent = pick(ENC_WRONG); head.className='font-display text-2xl mb-1 text-sun'; }
+  else { head.textContent = pick(ENC_SKIP); head.className='font-display text-2xl mb-1 text-skip'; }
+  body.textContent = explain;
+  fb.classList.remove('hidden');
+}
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+/* ---------- 14. Simulated trainers answer (host) ---------- */
+function scheduleTrainerAnswers(){
+  const Q = QUESTIONS[qIndex];
+  trainers.forEach(t=>{
+    const willSkip = Math.random() < 0.05;
+    const isCorrect = !willSkip && (Math.random() < t.skill);
+    if(willSkip){ t.skip++; dist[qIndex].skip++; }
+    else if(isCorrect){
+      t.correct++; dist[qIndex].correct++;
+      const reaction = t.speed; // 0..1
+      t.score += 500 + Math.round(reaction*500);
+    } else { t.wrong++; dist[qIndex].wrong++; }
+  });
+  // live count animation
+  let shown = 0;
+  const total = trainers.length;
+  const meter = setInterval(()=>{
+    shown += Math.ceil(Math.random()*3);
+    if(shown >= total){ shown = total; clearInterval(meter); }
+    if(!answered) document.getElementById('answeredCount').textContent = shown+' / '+total+' participants locked in…';
+  }, 700);
+}
+
+/* ---------- 15. Next / finish ---------- */
+function nextQuestion(){
+  if(qIndex >= TOTAL-1){ endGame(); return; }
+  qIndex++;
+  renderQuestion();
+}
+function endGame(){
+  clearInterval(timerId);
+  if(mode === 'host'){ showDashboard(); }
+  else { showPlayerResult(); }
+}
+
+/* ---------- 16. Player result ---------- */
+function showPlayerResult(){
+  show('result');
+  sndWin();
+  const total = me.correct + me.wrong + me.skip;
+  document.getElementById('resultScore').textContent = score.toLocaleString();
+  document.getElementById('rCorrect').textContent = me.correct;
+  document.getElementById('rWrong').textContent = me.wrong;
+  document.getElementById('rSkip').textContent = me.skip;
+
+  const pct = me.correct / TOTAL;
+  let title, msg;
+  if(pct >= 0.9){ title='AI GRANDMASTER 🏆'; msg="Legendary! You truly understand how AI works. The galaxy salutes you!"; }
+  else if(pct >= 0.7){ title='AI EXPERT TRAINER ⚡'; msg="Awesome run! You've got real AI smarts. Keep exploring!"; }
+  else if(pct >= 0.5){ title='AI EXPLORER 🚀'; msg="Great adventure! You're well on your way to becoming an AI pro."; }
+  else { title='AI ROOKIE 🌱'; msg="Every champion starts here. Play again and watch your score blast off!"; }
+  document.getElementById('rankTitle').textContent = title;
+  document.getElementById('resultMsg').textContent = msg;
+  document.getElementById('resultBall').classList.add(pct>=0.7?'wobble':'spin');
+  if(pct >= 0.7) burstConfetti(60);
+}
+
+/* ---------- 17. Host dashboard ---------- */
+function showDashboard(){
+  show('dash');
+  sndWin();
+  burstConfetti(80);
+
+  // include the host's local play as a participant too
+  const board = trainers.map(t=>({name:t.name, avatar:t.avatar, score:t.score}));
+  board.push({ name:(me.name||'Host'), avatar:(me.avatar||'🖥️'), score:score });
+  board.sort((a,b)=> b.score - a.score);
+
+  // podium top 3
+  const podium = document.getElementById('podium');
+  podium.innerHTML = '';
+  const order = [1,0,2]; // silver, gold, bronze layout
+  const heights = {0:'h-40',1:'h-28',2:'h-20'};
+  const medals = {0:'🥇',1:'🥈',2:'🥉'};
+  const medalBg = {0:'#FACC15',1:'#CBD5E1',2:'#D97706'};
+  order.forEach(rank=>{
+    const p = board[rank];
+    if(!p) return;
+    const col = document.createElement('div');
+    col.className = 'flex flex-col items-center justify-end';
+    col.innerHTML =
+      '<div class="text-3xl mb-1">'+p.avatar+'</div>'+
+      '<div class="font-display text-base sm:text-lg mb-1 truncate max-w-[8rem]">'+p.name+'</div>'+
+      '<div class="font-display text-sun text-sm mb-2">'+p.score.toLocaleString()+'</div>'+
+      '<div class="'+heights[rank]+' w-full rounded-t-xl flex items-start justify-center pt-2" style="background:linear-gradient(180deg,'+medalBg[rank]+'33,'+medalBg[rank]+'11);border:1px solid '+medalBg[rank]+'66;">'+
+        '<div class="medal" style="background:'+medalBg[rank]+'">'+medals[rank]+'</div>'+
+      '</div>';
+    podium.appendChild(col);
+  });
+
+  // stats
+  const totalParts = board.length;
+  document.getElementById('dTotal').textContent = totalParts;
+  document.getElementById('dTop').textContent = (board[0]? board[0].score.toLocaleString():'0');
+  let totCorrect=0, totAns=0;
+  dist.forEach(d=>{ totCorrect += d.correct; totAns += d.correct+d.wrong+d.skip; });
+  document.getElementById('dAvg').textContent = totAns? Math.round(totCorrect/totAns*100)+'%' : '0%';
+
+  // per-question distribution bars
+  const list = document.getElementById('distList');
+  list.innerHTML = '';
+  dist.forEach((d,i)=>{
+    const tot = Math.max(1, d.correct + d.wrong + d.skip);
+    const c = d.correct/tot*100, w = d.wrong/tot*100, s = d.skip/tot*100;
+    const row = document.createElement('div');
+    row.className = 'panel p-3';
+    row.innerHTML =
+      '<div class="flex items-center gap-3">'+
+        '<div class="font-display text-sun w-8 text-center">'+(i+1)+'</div>'+
+        '<div class="flex-1">'+
+          '<div class="text-sm text-white/85 mb-1 truncate">'+QUESTIONS[i].q+'</div>'+
+          '<div class="flex h-5 rounded-lg overflow-hidden bg-white/10">'+
+            '<div style="width:'+c+'%" class="bg-good"></div>'+
+            '<div style="width:'+w+'%" class="bg-bad"></div>'+
+            '<div style="width:'+s+'%" class="bg-skip"></div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="text-xs text-white/60 w-14 text-right">'+Math.round(c)+'% ✓</div>'+
+      '</div>';
+    list.appendChild(row);
+  });
+}
+
+/* ---------- 18. Confetti ---------- */
+function burstConfetti(n){
+  n = n || 26;
+  const colors = ['#FACC15','#EF4444','#2563EB','#22C55E','#FDE047','#fff'];
+  for(let i=0;i<n;i++){
+    const c = document.createElement('div');
+    c.className = 'confetti';
+    c.style.left = Math.random()*100 + 'vw';
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.animationDuration = (1.6 + Math.random()*1.6)+'s';
+    c.style.transform = 'rotate('+(Math.random()*360)+'deg)';
+    document.body.appendChild(c);
+    setTimeout(()=> c.remove(), 3400);
+  }
+}
+
+/* ---------- 19. Auto-route from QR (?role=player) ---------- */
+(function autoRoute(){
+  const params = new URLSearchParams(location.search);
+  if(params.get('role') === 'player'){
+    setTimeout(()=> goPlayerJoin(), 50);
+  }
+})();
+</script>
+</body>
+</html>
