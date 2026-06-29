@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Signal — Live Quiz</title>
+<title>AI Odyssey — Live Quiz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,6 +14,7 @@
   --bg:#15102b; --bg2:#1e1740; --surface:#241c4d; --surface2:#2e2660;
   --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.18);
   --gold:#F6C453; --coral:#FF6A5C; --mint:#54E0A6; --violet:#9A86FF;
+  --azure:#39B8FF; --sky:#7CD4FF;
   --text:#F4EFE4; --muted:#A79FC9; --dark:#15102b;
   --o0:#FF6A5C; --o1:#F6C453; --o2:#9A86FF; --o3:#3FCF95;
   --display:'Bebas Neue',Impact,sans-serif;
@@ -24,7 +25,8 @@ html,body{margin:0;padding:0}
 body{
   font-family:var(--body); color:var(--text);
   background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(154,134,255,.18), transparent 60%),
+    radial-gradient(1100px 560px at 82% -12%, rgba(57,184,255,.20), transparent 60%),
+    radial-gradient(1000px 520px at 12% -6%, rgba(154,134,255,.16), transparent 58%),
     radial-gradient(900px 500px at 0% 110%, rgba(255,106,92,.14), transparent 55%),
     var(--bg);
   min-height:100vh; -webkit-font-smoothing:antialiased; line-height:1.5;
@@ -35,10 +37,22 @@ button{font-family:var(--body); cursor:pointer}
 
 /* header */
 .top{display:flex; align-items:center; justify-content:space-between; padding:18px clamp(16px,4vw,40px); border-bottom:1px solid var(--line)}
-.brand{display:flex; align-items:center; gap:12px}
-.brand .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--coral),var(--gold));display:grid;place-items:center;font-family:var(--display);font-size:22px;color:#1c1530;letter-spacing:.5px}
-.brand b{font-family:var(--display); font-size:26px; letter-spacing:1.5px; font-weight:400}
-.brand span{color:var(--muted); font-size:12px; letter-spacing:.18em; text-transform:uppercase}
+.brand{display:flex; align-items:center; gap:13px}
+.emblem{width:42px;height:42px;flex:none;display:block;filter:drop-shadow(0 4px 10px rgba(57,184,255,.35))}
+.emblem .planet{animation:spin 14s linear infinite;transform-origin:50% 50%}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lockup{display:flex;flex-direction:column;line-height:1}
+.wm{font-family:var(--display);font-weight:400;font-size:28px;letter-spacing:1.5px;
+  background:linear-gradient(180deg,#fff 8%,var(--sky) 55%,var(--azure) 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  text-shadow:0 2px 0 rgba(13,30,60,.0); position:relative}
+.wm .ai{color:var(--gold);-webkit-text-fill-color:var(--gold)}
+.tag{color:var(--muted); font-size:11px; letter-spacing:.26em; text-transform:uppercase; margin-top:1px}
+/* big hero version of the logo */
+.logo-hero{display:flex;flex-direction:column;align-items:flex-start;gap:14px;margin-bottom:6px}
+.logo-hero .emblem{width:74px;height:74px}
+.logo-hero .wm{font-size:clamp(48px,11vw,104px);letter-spacing:2px;line-height:.9}
+.logo-hero .ring{font-family:var(--body);font-weight:600;font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--azure);border:1px solid rgba(57,184,255,.4);background:rgba(57,184,255,.08);border-radius:100px;padding:6px 14px}
 .live{display:inline-flex;align-items:center;gap:8px;font-family:var(--display);letter-spacing:2px;font-size:18px;color:var(--coral);padding:6px 14px;border:1px solid rgba(255,106,92,.4);border-radius:100px;background:rgba(255,106,92,.08)}
 .live .dot{width:9px;height:9px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 0 rgba(255,106,92,.6);animation:pulse 1.6s infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,106,92,.55)}70%{box-shadow:0 0 0 12px rgba(255,106,92,0)}100%{box-shadow:0 0 0 0 rgba(255,106,92,0)}}
@@ -169,10 +183,16 @@ label.fld .lab{font-size:12px;letter-spacing:.16em;text-transform:uppercase;colo
 
 <div class="top">
   <div class="brand">
-    <div class="mark">S</div>
-    <div>
-      <b>SIGNAL</b><br>
-      <span>live quiz</span>
+    <svg class="emblem" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="AI Odyssey">
+      <defs><linearGradient id="pg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD778"/><stop offset="1" stop-color="#FF6A5C"/></linearGradient></defs>
+      <g class="planet"><ellipse cx="24" cy="24" rx="22" ry="8.5" stroke="#39B8FF" stroke-width="2.4" transform="rotate(-26 24 24)" opacity=".9"/></g>
+      <circle cx="24" cy="24" r="10.5" fill="url(#pg1)"/>
+      <circle cx="20.5" cy="20.5" r="3" fill="#fff" opacity=".5"/>
+      <path d="M39 8l1.3 3 3 1.3-3 1.3L39 18l-1.3-3.1-3-1.3 3-1.3z" fill="#FFE9A8"/>
+    </svg>
+    <div class="lockup">
+      <b class="wm"><span class="ai">AI</span> ODYSSEY</b>
+      <span class="tag">live quiz</span>
     </div>
   </div>
   <div id="liveBadge" class="live hide"><span class="dot"></span>ON AIR</div>
@@ -182,9 +202,20 @@ label.fld .lab{font-size:12px;letter-spacing:.16em;text-transform:uppercase;colo
 
 <!-- ============ LANDING ============ -->
 <section id="screen-landing">
-  <p class="eyebrow">peer-to-peer · no server · one screen to rule them</p>
-  <h1 class="big">Run the room.</h1>
-  <p class="sub">Host a live quiz from this screen. Players join with their phones by scanning one code — questions, answers and the leaderboard sync in real time.</p>
+  <div class="logo-hero">
+    <span class="ring">scan in · play live · climb the ranks</span>
+    <div style="display:flex;align-items:center;gap:18px">
+      <svg class="emblem" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="AI Odyssey">
+        <defs><linearGradient id="pg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD778"/><stop offset="1" stop-color="#FF6A5C"/></linearGradient></defs>
+        <g class="planet"><ellipse cx="24" cy="24" rx="22" ry="8.5" stroke="#39B8FF" stroke-width="2.4" transform="rotate(-26 24 24)" opacity=".9"/></g>
+        <circle cx="24" cy="24" r="10.5" fill="url(#pg2)"/>
+        <circle cx="20.5" cy="20.5" r="3" fill="#fff" opacity=".5"/>
+        <path d="M39 8l1.3 3 3 1.3-3 1.3L39 18l-1.3-3.1-3-1.3 3-1.3z" fill="#FFE9A8"/>
+      </svg>
+      <b class="wm" style="font-size:clamp(44px,10vw,96px);letter-spacing:2px;line-height:.9"><span class="ai">AI</span> ODYSSEY</b>
+    </div>
+  </div>
+  <p class="sub mt">A live quiz adventure. Host from the big screen, players join from their phones with one scan — questions, answers and the leaderboard move in real time.</p>
   <div class="choice">
     <div class="tile">
       <div class="ic" style="background:linear-gradient(135deg,var(--gold),#ffd778);color:#1b1430">H</div>
@@ -193,7 +224,7 @@ label.fld .lab{font-size:12px;letter-spacing:.16em;text-transform:uppercase;colo
       <button class="btn btn-primary" onclick="goHostSetup()">Start hosting</button>
     </div>
     <div class="tile">
-      <div class="ic" style="background:linear-gradient(135deg,var(--violet),#c0b3ff);color:#1b1430">P</div>
+      <div class="ic" style="background:linear-gradient(135deg,var(--azure),var(--sky));color:#0b2740">P</div>
       <h3>Join a game</h3>
       <p>Got a code from the host's screen? Enter it here — or just scan the QR.</p>
       <button class="btn btn-ghost" onclick="showManualJoin()">Enter a code</button>
@@ -861,7 +892,7 @@ function handlePlayerData(d){
     if($('screen-wait').classList.contains('hide')) show('wait');
   }
   else if(d.t==='question'){
-    PL.q=d.q; PL.total=d.total; PL.dur=d.duration; PL.qStart=d.qStart; PL.answered=false;
+    PL.q=d.q; PL.total=d.total; PL.dur=d.duration; PL.answered=false;
     renderPlayerQuestion(d);
   }
   else if(d.t==='reveal'){
@@ -882,6 +913,7 @@ function submitName(){
 function renderPlayerQuestion(d){
   show('pquestion'); setLive(true);
   $('pQNum').textContent=`Question ${d.q+1} / ${d.total}`;
+  PL.qStart = Date.now();   // count down from the moment THIS device receives the question
   const wrap=$('pOpts'); wrap.innerHTML='';
   d.options.forEach((o,idx)=>{
     const b=document.createElement('button'); b.className=`opt o${idx}`;
