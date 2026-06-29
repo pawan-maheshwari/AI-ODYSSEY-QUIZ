@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Signal — Live Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --bg:#15102b; --bg2:#1e1740; --surface:#241c4d; --surface2:#2e2660;
+  --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.18);
+  --gold:#F6C453; --coral:#FF6A5C; --mint:#54E0A6; --violet:#9A86FF;
+  --text:#F4EFE4; --muted:#A79FC9; --dark:#15102b;
+  --o0:#FF6A5C; --o1:#F6C453; --o2:#9A86FF; --o3:#3FCF95;
+  --display:'Bebas Neue',Impact,sans-serif;
+  --body:'Space Grotesk',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family:var(--body); color:var(--text);
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(154,134,255,.18), transparent 60%),
+    radial-gradient(900px 500px at 0% 110%, rgba(255,106,92,.14), transparent 55%),
+    var(--bg);
+  min-height:100vh; -webkit-font-smoothing:antialiased; line-height:1.5;
+}
+button{font-family:var(--body); cursor:pointer}
+.wrap{max-width:1080px; margin:0 auto; padding:24px clamp(16px,4vw,40px)}
+.hide{display:none !important}
+
+/* header */
+.top{display:flex; align-items:center; justify-content:space-between; padding:18px clamp(16px,4vw,40px); border-bottom:1px solid var(--line)}
+.brand{display:flex; align-items:center; gap:12px}
+.brand .mark{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--coral),var(--gold));display:grid;place-items:center;font-family:var(--display);font-size:22px;color:#1c1530;letter-spacing:.5px}
+.brand b{font-family:var(--display); font-size:26px; letter-spacing:1.5px; font-weight:400}
+.brand span{color:var(--muted); font-size:12px; letter-spacing:.18em; text-transform:uppercase}
+.live{display:inline-flex;align-items:center;gap:8px;font-family:var(--display);letter-spacing:2px;font-size:18px;color:var(--coral);padding:6px 14px;border:1px solid rgba(255,106,92,.4);border-radius:100px;background:rgba(255,106,92,.08)}
+.live .dot{width:9px;height:9px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 0 rgba(255,106,92,.6);animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,106,92,.55)}70%{box-shadow:0 0 0 12px rgba(255,106,92,0)}100%{box-shadow:0 0 0 0 rgba(255,106,92,0)}}
+
+/* type */
+.eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1.big{font-family:var(--display);font-weight:400;letter-spacing:1px;line-height:.95;margin:.15em 0 .25em;font-size:clamp(44px,9vw,92px)}
+.sub{color:var(--muted);font-size:clamp(15px,2.2vw,18px);max-width:560px}
+
+/* cards */
+.card{background:linear-gradient(180deg,var(--surface),var(--bg2));border:1px solid var(--line);border-radius:20px;padding:clamp(20px,3vw,32px)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;border:none;border-radius:13px;padding:15px 24px;font-weight:600;font-size:16px;letter-spacing:.01em;transition:transform .08s ease,filter .15s ease;width:100%}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:linear-gradient(135deg,var(--gold),#ffd778);color:#1b1430}
+.btn-primary:hover{filter:brightness(1.05)}
+.btn-coral{background:linear-gradient(135deg,var(--coral),#ff8a7e);color:#1b1430}
+.btn-ghost{background:transparent;border:1px solid var(--line2);color:var(--text)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+.btn-dark{background:var(--surface2);color:var(--text);border:1px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.row .btn{width:auto;flex:1;min-width:140px}
+
+input,textarea{font-family:var(--body);width:100%;background:rgba(0,0,0,.22);border:1px solid var(--line2);border-radius:13px;color:var(--text);padding:15px 16px;font-size:17px;outline:none}
+input:focus,textarea:focus{border-color:var(--gold)}
+textarea{min-height:150px;resize:vertical;font-size:13px;line-height:1.5}
+label.fld{display:block;margin:0 0 18px}
+label.fld .lab{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:block}
+
+/* landing choice */
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:30px}
+@media(max-width:680px){.choice{grid-template-columns:1fr}}
+.tile{border:1px solid var(--line);border-radius:18px;padding:26px;background:linear-gradient(180deg,var(--surface),var(--bg2));transition:border-color .15s,transform .12s}
+.tile:hover{border-color:var(--gold);transform:translateY(-2px)}
+.tile h3{font-family:var(--display);font-weight:400;letter-spacing:1px;font-size:30px;margin:14px 0 6px}
+.tile p{color:var(--muted);font-size:14px;margin:0 0 18px}
+.tile .ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-family:var(--display);font-size:26px}
+
+/* code / game number */
+.gamecode{font-family:var(--display);letter-spacing:.14em;font-size:clamp(40px,9vw,72px);line-height:1;background:linear-gradient(135deg,var(--gold),var(--coral));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.qr-box{background:#fff;padding:16px;border-radius:16px;width:max-content;margin:0 auto}
+.qr-box img,.qr-box canvas{display:block}
+
+/* roster */
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.chip{background:var(--surface2);border:1px solid var(--line);border-radius:100px;padding:8px 15px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.chip .av{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-size:14px;color:#1b1430}
+
+/* question */
+.qmeta{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:14px}
+.qnum{font-family:var(--display);letter-spacing:.06em;font-size:20px;color:var(--muted)}
+.qtext{font-size:clamp(22px,3.6vw,38px);font-weight:600;line-height:1.2;letter-spacing:-.01em}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:22px}
+.lookup{display:flex;align-items:center;gap:12px;justify-content:center;text-align:center;color:var(--muted);font-size:15px;border:1px dashed var(--line2);border-radius:14px;padding:16px;background:rgba(0,0,0,.14)}
+.lookup .ar{font-family:var(--display);font-size:28px;color:var(--gold);line-height:1;animation:bob 1.6s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+@media(max-width:620px){.opts{grid-template-columns:1fr}}
+.opt{border:none;border-radius:15px;padding:20px;text-align:left;font-size:18px;font-weight:600;color:#1b1430;display:flex;gap:14px;align-items:center;min-height:74px;transition:transform .08s,box-shadow .15s,filter .15s}
+.opt .key{width:30px;height:30px;flex:none;border-radius:8px;background:rgba(0,0,0,.18);display:grid;place-items:center;font-family:var(--display);font-size:20px;color:rgba(0,0,0,.55)}
+.opt:hover{filter:brightness(1.06)}
+.opt:active{transform:scale(.985)}
+.opt.o0{background:var(--o0)} .opt.o1{background:var(--o1)} .opt.o2{background:var(--o2);color:#fff} .opt.o2 .key{color:rgba(255,255,255,.7);background:rgba(0,0,0,.22)} .opt.o3{background:var(--o3)}
+.opt.dim{opacity:.35;filter:grayscale(.4)}
+.opt.correct{outline:4px solid var(--mint);outline-offset:3px}
+.opt.wrong{outline:4px solid #ff3b3b;outline-offset:3px}
+.opt.picked{box-shadow:0 0 0 4px rgba(255,255,255,.85) inset}
+
+/* timer ring */
+.ring{position:relative;width:84px;height:84px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring .num{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:34px}
+.bar{height:10px;border-radius:100px;background:rgba(0,0,0,.25);overflow:hidden;margin-top:18px}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--mint),var(--gold),var(--coral));width:100%;transition:width 1s linear}
+
+/* tally / stats */
+.stats{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}
+.stat{flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.stat .n{font-family:var(--display);font-size:34px;line-height:1}
+.stat .l{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-top:2px}
+
+/* leaderboard */
+.lb{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.lbrow{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 16px}
+.lbrow.me{border-color:var(--gold);background:rgba(246,196,83,.08)}
+.lbrow .rk{font-family:var(--display);font-size:30px;width:46px;text-align:center;color:var(--muted)}
+.lbrow.top1 .rk{color:var(--gold)} .lbrow.top2 .rk{color:#d8d8e8} .lbrow.top3 .rk{color:#e0a071}
+.lbrow .nm{font-weight:700;font-size:17px;flex:1}
+.lbrow .sc{font-family:var(--display);font-size:30px;letter-spacing:.03em}
+.podium{display:flex;align-items:flex-end;justify-content:center;gap:14px;margin:10px 0 22px}
+.pod{flex:1;max-width:200px;text-align:center}
+.pod .bar{height:auto;background:none;margin:0}
+.pod .col{border-radius:14px 14px 0 0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:14px 8px;color:#1b1430}
+.pod .pn{font-weight:700;margin-bottom:8px;font-size:15px}
+.pod .ps{font-family:var(--display);font-size:30px}
+.pod.p1 .col{background:linear-gradient(180deg,var(--gold),#e0a93a);height:150px}
+.pod.p2 .col{background:linear-gradient(180deg,#dfe0ea,#a9abc4);height:110px}
+.pod.p3 .col{background:linear-gradient(180deg,#e6a877,#c07b46);height:88px;color:#fff}
+.pod .rkbig{font-family:var(--display);font-size:26px;margin-top:8px;color:var(--muted)}
+
+/* report breakdown */
+.bd{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.bdrow{display:flex;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px}
+.bdrow .ix{font-family:var(--display);font-size:20px;color:var(--muted);width:30px}
+.bdrow .qq{flex:1}
+.bdrow .pt{font-family:var(--display);font-size:22px}
+.tag{font-size:11px;font-weight:700;letter-spacing:.06em;padding:3px 9px;border-radius:100px;text-transform:uppercase}
+.tag.ok{background:rgba(84,224,166,.16);color:var(--mint)}
+.tag.no{background:rgba(255,59,59,.16);color:#ff7a7a}
+.tag.skip{background:rgba(167,159,201,.16);color:var(--muted)}
+
+.note{font-size:13px;color:var(--muted);background:rgba(0,0,0,.18);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:16px}
+.note b{color:var(--gold)}
+.center{text-align:center}
+.mt{margin-top:18px}.mt2{margin-top:28px}
+.spin{display:inline-block;width:20px;height:20px;border:3px solid rgba(255,255,255,.25);border-top-color:var(--gold);border-radius:50%;animation:sp 1s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.fade{animation:fade .4s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+::selection{background:var(--gold);color:#1b1430}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="brand">
+    <div class="mark">S</div>
+    <div>
+      <b>SIGNAL</b><br>
+      <span>live quiz</span>
+    </div>
+  </div>
+  <div id="liveBadge" class="live hide"><span class="dot"></span>ON AIR</div>
+</div>
+
+<div class="wrap">
+
+<!-- ============ LANDING ============ -->
+<section id="screen-landing">
+  <p class="eyebrow">peer-to-peer · no server · one screen to rule them</p>
+  <h1 class="big">Run the room.</h1>
+  <p class="sub">Host a live quiz from this screen. Players join with their phones by scanning one code — questions, answers and the leaderboard sync in real time.</p>
+  <div class="choice">
+    <div class="tile">
+      <div class="ic" style="background:linear-gradient(135deg,var(--gold),#ffd778);color:#1b1430">H</div>
+      <h3>Host a game</h3>
+      <p>Open the control deck, broadcast the join code, and drive the questions.</p>
+      <button class="btn btn-primary" onclick="goHostSetup()">Start hosting</button>
+    </div>
+    <div class="tile">
+      <div class="ic" style="background:linear-gradient(135deg,var(--violet),#c0b3ff);color:#1b1430">P</div>
+      <h3>Join a game</h3>
+      <p>Got a code from the host's screen? Enter it here — or just scan the QR.</p>
+      <button class="btn btn-ghost" onclick="showManualJoin()">Enter a code</button>
+    </div>
+  </div>
+  <div id="manualJoin" class="card hide mt2" style="max-width:420px">
+    <label class="fld"><span class="lab">Game number</span>
+      <input id="manualCode" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="off"></label>
+    <button class="btn btn-coral" onclick="manualJoinGo()">Join game</button>
+  </div>
+</section>
+
+<!-- ============ HOST: SETUP ============ -->
+<section id="screen-host-setup" class="hide">
+  <p class="eyebrow">host · setup</p>
+  <h1 class="big" style="font-size:clamp(38px,7vw,64px)">Build the round</h1>
+  <p class="sub">Write your questions, mark the right answer, and you're ready to go live.</p>
+
+  <div id="fileWarn" class="note hide" style="border-color:var(--coral);color:#ffd2cc;margin-top:18px">
+    <b>⚠ You opened this as a local file.</b> Phones can't scan into a <code>file://</code> page — the QR would point to your own hard drive. To let players join, put <b>quiz.html</b> on a real web address (your GitHub Pages URL) and open <i>that</i> link to host. You can still build the round here to preview it.
+  </div>
+
+  <div class="card mt2">
+    <label class="fld"><span class="lab">Game title (shown to players)</span>
+      <input id="gameTitle" value="AI University · Live Quiz" maxlength="60"></label>
+    <div class="row" style="margin-bottom:8px">
+      <label class="fld" style="flex:1;margin:0"><span class="lab">Seconds per question</span>
+        <input id="qDur" type="number" min="5" max="120" value="20"></label>
+      <label class="fld" style="flex:1;margin:0"><span class="lab">Auto-end after (hours)</span>
+        <input id="autoEnd" type="number" min="1" max="24" value="8"></label>
+    </div>
+  </div>
+
+  <div class="card mt2">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <p class="eyebrow" style="margin:0">your questions</p>
+      <button class="btn btn-ghost" style="width:auto" onclick="toggleAdvanced()">Advanced: paste JSON</button>
+    </div>
+    <div id="qBuilder" class="mt"></div>
+    <button class="btn btn-dark mt" onclick="addQuestionRow()">+ Add question</button>
+
+    <div id="advanced" class="hide mt2">
+      <label class="fld"><span class="lab">Questions (JSON) — for power users</span>
+        <textarea id="qJson" spellcheck="false"></textarea></label>
+      <button class="btn btn-ghost" style="width:auto" onclick="applyJson()">Load JSON into builder</button>
+    </div>
+
+    <div id="jsonErr" class="note hide" style="border-color:var(--coral);color:#ffb3ab;margin-top:16px"></div>
+    <button class="btn btn-primary mt2" onclick="createGame()">Create game &amp; open lobby</button>
+  </div>
+
+  <div class="note"><b>Reminder:</b> the host tab must stay open for the whole game — it's the hub every phone connects to.</div>
+</section>
+
+<!-- ============ HOST: LOBBY ============ -->
+<section id="screen-host-lobby" class="hide">
+  <div class="grid2">
+    <div class="card center">
+      <p class="eyebrow">scan to join</p>
+      <div id="qr" class="qr-box mt"></div>
+      <p class="mt" style="color:var(--muted);font-size:14px">or enter game number</p>
+      <div class="gamecode" id="lobbyCode">000000</div>
+      <p id="joinUrl" style="font-size:12px;color:var(--muted);word-break:break-all;margin-top:8px"></p>
+      <div id="lobbyWarn" class="note hide" style="border-color:var(--coral);color:#ffd2cc;text-align:left">
+        <b>This QR can't be scanned.</b> You're hosting from a local file, so the link points to your own computer. Paste the public web address where <b>quiz.html</b> is hosted and the QR will fix itself:
+        <input id="pubBase" placeholder="https://yourname.github.io/quiz/quiz.html" style="margin-top:10px">
+        <button class="btn btn-coral" style="margin-top:10px" onclick="applyPublicBase()">Update QR</button>
+      </div>
+    </div>
+    <div class="card">
+      <p class="eyebrow">players in the lobby</p>
+      <div class="stat mt" style="min-width:0">
+        <div class="n" id="lobbyCount">0</div>
+        <div class="l">connected</div>
+      </div>
+      <div class="chips" id="lobbyChips"></div>
+      <button class="btn btn-primary mt2" id="startBtn" onclick="startGame()" disabled>Start game</button>
+      <p style="font-size:13px;color:var(--muted);margin-top:10px">Players can keep joining after you start — they'll drop into the live question.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOST: LIVE ============ -->
+<section id="screen-host-live" class="hide">
+  <div class="qmeta">
+    <span class="qnum" id="hQNum">Question 1 / 8</span>
+    <div class="ring" id="hRing"><svg width="84" height="84"><circle cx="42" cy="42" r="36" stroke="rgba(255,255,255,.12)" stroke-width="8" fill="none"/><circle id="hRingArc" cx="42" cy="42" r="36" stroke="var(--coral)" stroke-width="8" fill="none" stroke-linecap="round"/></svg><div class="num" id="hTime">20</div></div>
+  </div>
+  <div class="card">
+    <div class="qtext" id="hQText">—</div>
+    <div class="opts" id="hOpts"></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="n" id="hAnswered">0</div><div class="l">answered</div></div>
+    <div class="stat"><div class="n" id="hPlayers">0</div><div class="l">players</div></div>
+    <div class="stat"><div class="n" id="hFastest">—</div><div class="l">first in</div></div>
+  </div>
+  <div class="row mt2">
+    <button class="btn btn-coral" id="hReveal" onclick="revealAnswer()">Reveal answer</button>
+    <button class="btn btn-primary" id="hNext" onclick="nextQuestion()" disabled>Next question</button>
+    <button class="btn btn-dark" style="flex:none;width:auto" onclick="endGame()">End game</button>
+  </div>
+  <div class="card mt2">
+    <p class="eyebrow">live leaderboard</p>
+    <div class="lb" id="hLb"></div>
+  </div>
+</section>
+
+<!-- ============ HOST: ENDED (leaderboard) ============ -->
+<section id="screen-host-end" class="hide">
+  <p class="eyebrow center">final results</p>
+  <h1 class="big center" style="font-size:clamp(40px,8vw,76px)">Leaderboard</h1>
+  <div class="podium" id="podium"></div>
+  <div class="card">
+    <div class="lb" id="fLb"></div>
+    <div class="stats mt2">
+      <div class="stat"><div class="n" id="fTotal">0</div><div class="l">players</div></div>
+      <div class="stat"><div class="n" id="fQs">0</div><div class="l">questions</div></div>
+      <div class="stat"><div class="n" id="fTop">—</div><div class="l">winner</div></div>
+    </div>
+  </div>
+  <button class="btn btn-ghost mt2" onclick="location.reload()">Host another game</button>
+</section>
+
+<!-- ============ PLAYER: JOIN ============ -->
+<section id="screen-join" class="hide">
+  <div class="card" style="max-width:460px;margin:6vh auto 0">
+    <p class="eyebrow center">you're joining</p>
+    <div class="gamecode center" id="joinGameNo" style="font-size:clamp(34px,11vw,60px)">—</div>
+    <p class="center" id="joinTitle" style="color:var(--muted);margin-top:4px">—</p>
+    <div id="joinForm" class="mt2">
+      <label class="fld"><span class="lab">Your name</span>
+        <input id="playerName" maxlength="20" placeholder="e.g. Ananya" autocomplete="off"></label>
+      <button class="btn btn-coral" id="joinBtn" onclick="submitName()">I'm ready</button>
+    </div>
+    <div id="joinStatus" class="note center hide"></div>
+  </div>
+</section>
+
+<!-- ============ PLAYER: WAITING ============ -->
+<section id="screen-wait" class="hide">
+  <div class="card center" style="max-width:460px;margin:10vh auto 0">
+    <div class="spin"></div>
+    <h2 style="font-family:var(--display);font-weight:400;letter-spacing:1px;font-size:34px;margin:16px 0 6px" id="waitTitle">You're in!</h2>
+    <p style="color:var(--muted)" id="waitMsg">Hang tight — the host will start the game any moment.</p>
+  </div>
+</section>
+
+<!-- ============ PLAYER: QUESTION ============ -->
+<section id="screen-pquestion" class="hide">
+  <div class="qmeta">
+    <span class="qnum" id="pQNum">Question 1</span>
+    <div class="ring"><svg width="84" height="84"><circle cx="42" cy="42" r="36" stroke="rgba(255,255,255,.12)" stroke-width="8" fill="none"/><circle id="pRingArc" cx="42" cy="42" r="36" stroke="var(--coral)" stroke-width="8" fill="none" stroke-linecap="round"/></svg><div class="num" id="pTime">20</div></div>
+  </div>
+  <div class="lookup">
+    <span class="ar">↑</span> Read the question on the main screen, then tap your answer
+  </div>
+  <div class="opts" id="pOpts"></div>
+  <div class="bar"><i id="pBar"></i></div>
+</section>
+
+<!-- ============ PLAYER: LOCKED / REVEAL ============ -->
+<section id="screen-plocked" class="hide">
+  <div class="card center" style="max-width:480px;margin:8vh auto 0">
+    <div id="lockedView">
+      <div class="spin"></div>
+      <h2 style="font-family:var(--display);font-weight:400;letter-spacing:1px;font-size:36px;margin:16px 0 6px">Locked in</h2>
+      <p style="color:var(--muted)">Waiting for the host to move on. Don't refresh — you'll stay in the game.</p>
+    </div>
+    <div id="revealView" class="hide">
+      <h2 style="font-family:var(--display);font-weight:400;letter-spacing:1px;font-size:44px;margin:6px 0" id="revealHead">Correct!</h2>
+      <div class="gamecode" id="revealPts" style="font-size:clamp(40px,12vw,68px)">+0</div>
+      <div class="stats mt2">
+        <div class="stat"><div class="n" id="revealRank">—</div><div class="l">your rank</div></div>
+        <div class="stat"><div class="n" id="revealTotal">0</div><div class="l">your score</div></div>
+      </div>
+      <p style="color:var(--muted);margin-top:18px">Waiting for the next question…</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PLAYER: REPORT ============ -->
+<section id="screen-report" class="hide">
+  <p class="eyebrow center">your report card</p>
+  <h1 class="big center" style="font-size:clamp(38px,9vw,72px)" id="rName">—</h1>
+  <div class="card">
+    <div class="stats">
+      <div class="stat"><div class="n" id="rRank">—</div><div class="l">final rank</div></div>
+      <div class="stat"><div class="n" id="rScore">0</div><div class="l">total score</div></div>
+      <div class="stat"><div class="n" id="rAcc">0%</div><div class="l">accuracy</div></div>
+      <div class="stat"><div class="n" id="rCorrect">0</div><div class="l">correct</div></div>
+    </div>
+    <p class="eyebrow mt2">question by question</p>
+    <div class="bd" id="rBreak"></div>
+  </div>
+  <p class="center" style="color:var(--muted);margin-top:20px">Thanks for playing.</p>
+</section>
+
+</div>
+
+<script>
+/* =========================================================
+   SIGNAL — zero-backend live quiz (WebRTC via PeerJS)
+   Host machine = hub. Players connect peer-to-peer.
+========================================================= */
+
+const $ = id => document.getElementById(id);
+const screens = ['landing','host-setup','host-lobby','host-live','host-end','join','wait','pquestion','plocked','report'];
+function show(name){
+  screens.forEach(s => $('screen-'+s).classList.add('hide'));
+  $('screen-'+name).classList.remove('hide');
+  const sec = $('screen-'+name); sec.classList.remove('fade'); void sec.offsetWidth; sec.classList.add('fade');
+  window.scrollTo({top:0});
+}
+function setLive(on){ $('liveBadge').classList.toggle('hide', !on); }
+
+const DEFAULT_QUESTIONS = [
+  {q:"What does “AI” stand for?", options:["Automated Input","Artificial Intelligence","Advanced Internet","Applied Information"], answer:1},
+  {q:"Machine learning is best described as a subfield of…", options:["Artificial Intelligence","Graphic Design","Cyber Security","Database Management"], answer:0},
+  {q:"Which term describes an AI model that creates new text, images, or audio?", options:["Generative AI","Regression","Clustering","Compiler"], answer:0},
+  {q:"What does the “P” in GPT stand for?", options:["Predictive","Parallel","Pre-trained","Probabilistic"], answer:2},
+  {q:"A “prompt” is best described as…", options:["The model's training data","The instruction you give the model","The hardware it runs on","The output filter"], answer:1},
+  {q:"In machine learning, a “token” is…", options:["A security key","A chunk of text the model processes","A type of GPU","A dataset license"], answer:1},
+  {q:"A confident but false AI answer is commonly called a…", options:["Glitch","Hallucination","Cache miss","Syntax error"], answer:1},
+  {q:"What does “fine-tuning” a model mean?", options:["Training it further on a focused dataset","Cooling the servers","Compressing the file","Renaming the layers"], answer:0},
+  {q:"RAG (Retrieval-Augmented Generation) mainly helps by…", options:["Speeding up typing","Giving the model external context to reduce errors","Lowering electricity use","Encrypting the output"], answer:1},
+  {q:"“Multimodal” means an AI model can…", options:["Run on many servers","Handle multiple input types like text & images","Support many users","Use many languages only"], answer:1},
+  {q:"What does a neural network loosely imitate?", options:["A spreadsheet","Neurons in the human brain","A web browser","A search engine"], answer:1},
+  {q:"“Training data” refers to…", options:["The examples a model learns from","The model's price","The server location","The user manual"], answer:0},
+  {q:"The “temperature” setting in a model controls…", options:["Server heat","Randomness/creativity of the output","Internet speed","Screen brightness"], answer:1},
+  {q:"What is “computer vision”?", options:["A monitor setting","Enabling computers to interpret images and video","A typing tool","A backup system"], answer:1},
+  {q:"“Inference” in AI refers to…", options:["Cleaning the dataset","Using a trained model to make predictions","Buying more GPUs","Writing documentation"], answer:1},
+  {q:"Which of these is a large language model?", options:["Photoshop","Claude","Excel","Windows"], answer:1},
+  {q:"The Turing Test measures whether…", options:["A model is fast","A machine's behavior is indistinguishable from a human","A network is secure","A dataset is large"], answer:1},
+  {q:"A key risk of AI bias is…", options:["Slower training","Unfair outcomes from skewed training data","Higher accuracy","Smaller files"], answer:1},
+  {q:"Supervised learning relies on…", options:["Unlabeled random data","Labeled examples to learn from","No data at all","Only images"], answer:1},
+  {q:"A real risk of trusting AI output without review is…", options:["Faster typing","Acting on confidently wrong answers","Lower power use","Neater formatting"], answer:1}
+];
+
+/* ---------- routing ---------- */
+function goHostSetup(){
+  renderBuilder(DEFAULT_QUESTIONS);
+  $('qJson').value = JSON.stringify(DEFAULT_QUESTIONS, null, 2);
+  if(location.protocol==='file:') $('fileWarn').classList.remove('hide');
+  show('host-setup');
+}
+function showManualJoin(){ $('manualJoin').classList.toggle('hide'); $('manualCode').focus(); }
+function manualJoinGo(){
+  const c = $('manualCode').value.replace(/\D/g,'');
+  if(c.length<4){ $('manualCode').focus(); return; }
+  joinAsPlayer(c);
+}
+
+/* ---------- visual question builder ---------- */
+function renderBuilder(qs){
+  const wrap=$('qBuilder'); wrap.innerHTML='';
+  qs.forEach(q=> wrap.appendChild(buildRow(q)));
+  if(!qs.length) addQuestionRow();
+}
+function buildRow(q){
+  const idx = $('qBuilder').children.length;
+  const card=document.createElement('div');
+  card.className='qbuild';
+  card.style.cssText='border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;background:rgba(0,0,0,.14)';
+  const opts=(q&&q.options)||['','','',''];
+  while(opts.length<2) opts.push('');
+  const ans=(q&&typeof q.answer==='number')?q.answer:0;
+  let optHtml='';
+  opts.forEach((o,i)=>{
+    optHtml+=`<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);white-space:nowrap;cursor:pointer">
+        <input type="radio" name="ans_${idx}" class="qans" value="${i}" ${i===ans?'checked':''} style="width:auto;accent-color:var(--mint)"> right
+      </label>
+      <input class="qopt" placeholder="Option ${'ABCD'[i]||i+1}" value="${escapeAttr(o)}" style="margin:0">
+    </div>`;
+  });
+  card.innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <span class="qnum" style="font-size:16px">Question</span>
+      <button class="btn btn-ghost" style="width:auto;padding:6px 12px;font-size:13px" onclick="this.closest('.qbuild').remove();renumberRows()">Remove</button>
+    </div>
+    <input class="qtext-in" placeholder="Type your question…" value="${escapeAttr((q&&q.q)||'')}" style="margin-bottom:12px">
+    <div class="qopts-in">${optHtml}</div>`;
+  return card;
+}
+function addQuestionRow(){
+  const wrap=$('qBuilder');
+  wrap.appendChild(buildRow({q:'',options:['','','',''],answer:0}));
+  renumberRows();
+}
+function renumberRows(){
+  [...$('qBuilder').children].forEach((c,i)=>{
+    c.querySelector('.qnum').textContent='Question '+(i+1);
+    c.querySelectorAll('.qans').forEach(r=> r.name='ans_'+i);
+  });
+}
+function readBuilder(){
+  const out=[];
+  [...$('qBuilder').children].forEach(c=>{
+    const q=c.querySelector('.qtext-in').value.trim();
+    const opts=[...c.querySelectorAll('.qopt')].map(o=>o.value.trim()).filter(Boolean);
+    const checked=c.querySelector('.qans:checked');
+    let ans=checked?+checked.value:0;
+    if(ans>=opts.length) ans=0;
+    if(q && opts.length>=2) out.push({q, options:opts, answer:ans});
+  });
+  return out;
+}
+function toggleAdvanced(){
+  const a=$('advanced'); a.classList.toggle('hide');
+  if(!a.classList.contains('hide')) $('qJson').value=JSON.stringify(readBuilder(),null,2);
+}
+function applyJson(){
+  try{
+    const qs=JSON.parse($('qJson').value);
+    if(!Array.isArray(qs)||!qs.length) throw new Error('Provide a non-empty array.');
+    renderBuilder(qs); $('advanced').classList.add('hide'); $('jsonErr').classList.add('hide');
+  }catch(e){
+    const box=$('jsonErr'); box.textContent="Couldn't read that JSON: "+e.message; box.classList.remove('hide');
+  }
+}
+
+/* auto-route if ?join= present */
+window.addEventListener('DOMContentLoaded', ()=>{
+  const p = new URLSearchParams(location.search);
+  const code = p.get('join');
+  if(code){ joinAsPlayer(code.replace(/\D/g,'')); }
+});
+
+/* =========================================================
+   HOST
+========================================================= */
+const HOST = {
+  peer:null, code:null, title:'', dur:20, autoEndH:8, publicBase:null,
+  questions:[], qIndex:-1, qStart:0, revealed:false, started:false, ended:false,
+  players:new Map(),     // pid -> {pid,name,conn,score,answers:[],color}
+  qTimer:null, ringTimer:null, autoEndTimer:null
+};
+const PALETTE = ['#FF6A5C','#F6C453','#9A86FF','#3FCF95','#54E0A6','#FF9F45','#6FD3FF','#FF7AC8'];
+
+function createGame(){
+  // read from visual builder (advanced JSON, if open, is synced via applyJson)
+  let qs = readBuilder();
+  if(!qs.length){
+    const box=$('jsonErr'); box.textContent="Add at least one question with a question line and two or more options."; box.classList.remove('hide'); return;
+  }
+  $('jsonErr').classList.add('hide');
+
+  HOST.questions = qs;
+  HOST.title = ($('gameTitle').value||'Live Quiz').trim();
+  HOST.dur = Math.max(5, Math.min(120, parseInt($('qDur').value)||20));
+  HOST.autoEndH = Math.max(1, Math.min(24, parseInt($('autoEnd').value)||8));
+  HOST.code = String(Math.floor(100000 + Math.random()*900000));
+
+  startHostPeer();
+}
+
+function startHostPeer(){
+  const peerId = 'signalqz-' + HOST.code;
+  HOST.peer = new Peer(peerId, {debug:1});
+  HOST.peer.on('open', ()=> openLobby());
+  HOST.peer.on('error', err=>{
+    if(err.type==='unavailable-id'){ // collision, pick new code & retry
+      HOST.code = String(Math.floor(100000 + Math.random()*900000));
+      try{ HOST.peer.destroy(); }catch(e){}
+      startHostPeer();
+    }else{
+      console.warn('Peer error', err);
+    }
+  });
+  HOST.peer.on('connection', conn => wireHostConn(conn));
+}
+
+function wireHostConn(conn){
+  conn.on('open', ()=>{
+    // greet with game info
+    conn.send({t:'hello', gameNo:HOST.code, title:HOST.title});
+  });
+  conn.on('data', d => handleHostData(conn, d));
+  conn.on('close', ()=>{ /* keep their score; mark offline */ });
+}
+
+function handleHostData(conn, d){
+  if(!d||!d.t) return;
+  if(d.t==='join'){
+    let p = HOST.players.get(d.pid);
+    if(p){ p.conn = conn; p.name = d.name; }   // rejoin
+    else{
+      p = {pid:d.pid, name:d.name, conn, score:0, answers:[], color:PALETTE[HOST.players.size % PALETTE.length]};
+      HOST.players.set(d.pid, p);
+    }
+    conn.send({t:'joined', gameNo:HOST.code, title:HOST.title});
+    // sync state for late joiners
+    if(HOST.started && !HOST.ended && HOST.qIndex>=0 && !HOST.revealed){
+      sendQuestionTo(p);
+    }else if(HOST.ended){
+      sendReportTo(p);
+    }else{
+      conn.send({t:'lobby'});
+    }
+    refreshLobby(); refreshLiveStats();
+  }
+  else if(d.t==='answer'){
+    const p = HOST.players.get(d.pid); if(!p) return;
+    if(HOST.revealed || HOST.qIndex!==d.q) return;        // too late / wrong question
+    if(p.answers[d.q]!==undefined) return;                // already answered
+    const cur = HOST.questions[d.q];
+    const correct = d.choice===cur.answer;
+    const durMs = HOST.dur*1000;
+    let pts = 0;
+    if(correct){ pts = 500 + Math.round(500 * Math.max(0, 1 - d.ms/durMs)); }
+    p.answers[d.q] = {choice:d.choice, correct, ms:d.ms, pts};
+    p.score += pts;
+    if(HOST.firstIn===undefined){ HOST.firstIn = p.name; }
+    refreshLiveStats(); refreshHostLb();
+  }
+}
+
+/* ---- lobby ---- */
+function buildJoinUrl(){
+  let base = HOST.publicBase;
+  if(!base){ base = location.origin + location.pathname; }
+  // strip any existing query/hash, then add join
+  base = base.split('#')[0].split('?')[0];
+  return base + '?join=' + HOST.code;
+}
+function renderQR(){
+  const url = buildJoinUrl();
+  $('joinUrl').textContent = url;
+  $('qr').innerHTML='';
+  new QRCode($('qr'), {text:url, width:200, height:200, colorDark:'#15102b', colorLight:'#ffffff', correctLevel:QRCode.CorrectLevel.M});
+  const local = url.startsWith('file:');
+  $('lobbyWarn').classList.toggle('hide', !local);
+}
+function applyPublicBase(){
+  let v = $('pubBase').value.trim();
+  if(!v){ return; }
+  if(!/^https?:\/\//i.test(v)) v = 'https://'+v;
+  HOST.publicBase = v;
+  renderQR();
+}
+function openLobby(){
+  show('host-lobby'); setLive(true);
+  $('lobbyCode').textContent = HOST.code;
+  renderQR();
+  refreshLobby();
+}
+function refreshLobby(){
+  $('lobbyCount').textContent = HOST.players.size;
+  const wrap = $('lobbyChips'); wrap.innerHTML='';
+  HOST.players.forEach(p=>{
+    const c = document.createElement('div'); c.className='chip';
+    c.innerHTML = `<span class="av" style="background:${p.color}">${(p.name[0]||'?').toUpperCase()}</span>${escapeHtml(p.name)}`;
+    wrap.appendChild(c);
+  });
+  $('startBtn').disabled = HOST.players.size===0;
+}
+
+/* ---- start & questions ---- */
+function startGame(){
+  HOST.started = true;
+  const ms = HOST.autoEndH*3600*1000;
+  HOST.autoEndTimer = setTimeout(()=>{ if(!HOST.ended) endGame(); }, ms);
+  goToQuestion(0);
+}
+
+function goToQuestion(i){
+  HOST.qIndex = i; HOST.revealed = false; HOST.qStart = Date.now(); HOST.firstIn = undefined;
+  const cur = HOST.questions[i];
+  show('host-live'); setLive(true);
+  $('hQNum').textContent = `Question ${i+1} / ${HOST.questions.length}`;
+  $('hQText').textContent = cur.q;
+  $('hReveal').disabled = false;
+  $('hNext').disabled = true;
+  // render options (host sees correct marked only after reveal)
+  const wrap = $('hOpts'); wrap.innerHTML='';
+  cur.options.forEach((o,idx)=>{
+    const b=document.createElement('div'); b.className=`opt o${idx}`; b.dataset.idx=idx;
+    b.innerHTML=`<span class="key">${'ABCD'[idx]}</span><span>${escapeHtml(o)}</span>`;
+    wrap.appendChild(b);
+  });
+  refreshLiveStats(); refreshHostLb();
+  // broadcast to players
+  HOST.players.forEach(p=> sendQuestionTo(p));
+  startQuestionTimer();
+}
+
+function sendQuestionTo(p){
+  if(!p.conn||!p.conn.open) return;
+  const cur = HOST.questions[HOST.qIndex];
+  // Question text stays on the big screen only — phones receive options to tap, not the question.
+  p.conn.send({t:'question', q:HOST.qIndex, total:HOST.questions.length, options:cur.options, duration:HOST.dur, qStart:HOST.qStart});
+}
+
+function startQuestionTimer(){
+  clearInterval(HOST.qTimer);
+  const C=2*Math.PI*36;
+  $('hRingArc').style.strokeDasharray=C;
+  const tick=()=>{
+    const elapsed=(Date.now()-HOST.qStart)/1000;
+    const left=Math.max(0, HOST.dur-elapsed);
+    $('hTime').textContent=Math.ceil(left);
+    $('hRingArc').style.strokeDashoffset = C*(1-left/HOST.dur);
+    if(left<=0){ clearInterval(HOST.qTimer); }
+  };
+  tick(); HOST.qTimer=setInterval(tick,200);
+}
+
+function refreshLiveStats(){
+  const n = HOST.qIndex>=0 ? [...HOST.players.values()].filter(p=>p.answers[HOST.qIndex]!==undefined).length : 0;
+  $('hAnswered').textContent = n;
+  $('hPlayers').textContent = HOST.players.size;
+  $('hFastest').textContent = HOST.firstIn ? truncate(HOST.firstIn,8) : '—';
+}
+
+function revealAnswer(){
+  if(HOST.revealed) return;
+  HOST.revealed = true; clearInterval(HOST.qTimer);
+  const cur = HOST.questions[HOST.qIndex];
+  // mark on host screen
+  [...$('hOpts').children].forEach(b=>{
+    const idx=+b.dataset.idx;
+    if(idx===cur.answer) b.classList.add('correct'); else b.classList.add('dim');
+  });
+  $('hReveal').disabled = true;
+  $('hNext').disabled = false;
+  $('hNext').textContent = (HOST.qIndex>=HOST.questions.length-1) ? 'Show leaderboard' : 'Next question';
+  // push reveal to each player with personal result
+  const ranked = rankPlayers();
+  HOST.players.forEach(p=>{
+    if(!p.conn||!p.conn.open) return;
+    const a = p.answers[HOST.qIndex];
+    const rank = ranked.findIndex(x=>x.pid===p.pid)+1;
+    p.conn.send({t:'reveal', q:HOST.qIndex, correct:cur.answer,
+      yourChoice:a?a.choice:null, gotIt:a?a.correct:false, pts:a?a.pts:0,
+      total:p.score, rank, of:HOST.players.size});
+  });
+  refreshHostLb();
+}
+
+function nextQuestion(){
+  if(HOST.qIndex>=HOST.questions.length-1){ endGame(); return; }
+  goToQuestion(HOST.qIndex+1);
+}
+
+function rankPlayers(){
+  return [...HOST.players.values()].sort((a,b)=> b.score-a.score || (a.name>b.name?1:-1));
+}
+function refreshHostLb(){
+  const ranked=rankPlayers().slice(0,8);
+  const lb=$('hLb'); lb.innerHTML='';
+  if(!ranked.length){ lb.innerHTML='<p style="color:var(--muted);font-size:14px">No players yet.</p>'; return; }
+  ranked.forEach((p,i)=>{
+    const row=document.createElement('div'); row.className=`lbrow ${i<3?'top'+(i+1):''}`;
+    row.innerHTML=`<span class="rk">${i+1}</span><span class="nm">${escapeHtml(p.name)}</span><span class="sc">${p.score}</span>`;
+    lb.appendChild(row);
+  });
+}
+
+/* ---- end ---- */
+function endGame(){
+  if(HOST.ended) return;
+  HOST.ended=true; clearInterval(HOST.qTimer); clearTimeout(HOST.autoEndTimer); setLive(false);
+  // send each player their report
+  HOST.players.forEach(p=> sendReportTo(p));
+  // host leaderboard
+  const ranked=rankPlayers();
+  show('host-end');
+  const pod=$('podium'); pod.innerHTML='';
+  const order=[1,0,2]; // visual: 2nd, 1st, 3rd
+  order.forEach(oi=>{
+    const p=ranked[oi]; if(!p) return;
+    const place=oi+1;
+    const d=document.createElement('div'); d.className=`pod p${place}`;
+    d.innerHTML=`<div class="col"><div class="pn">${escapeHtml(truncate(p.name,12))}</div><div class="ps">${p.score}</div></div><div class="rkbig">${place===1?'🥇':place===2?'🥈':'🥉'}</div>`;
+    pod.appendChild(d);
+  });
+  const lb=$('fLb'); lb.innerHTML='';
+  ranked.forEach((p,i)=>{
+    const row=document.createElement('div'); row.className=`lbrow ${i<3?'top'+(i+1):''}`;
+    row.innerHTML=`<span class="rk">${i+1}</span><span class="nm">${escapeHtml(p.name)}</span><span class="sc">${p.score}</span>`;
+    lb.appendChild(row);
+  });
+  $('fTotal').textContent=HOST.players.size;
+  $('fQs').textContent=HOST.questions.length;
+  $('fTop').textContent= ranked[0]? truncate(ranked[0].name,10):'—';
+}
+
+function sendReportTo(p){
+  if(!p.conn||!p.conn.open) return;
+  const ranked=rankPlayers();
+  const rank=ranked.findIndex(x=>x.pid===p.pid)+1;
+  const breakdown=HOST.questions.map((cur,i)=>{
+    const a=p.answers[i];
+    return {q:cur.q, correctIdx:cur.answer, correctText:cur.options[cur.answer],
+      yourIdx:a?a.choice:null, yourText:(a&&a.choice!=null)?cur.options[a.choice]:null,
+      correct:a?a.correct:false, pts:a?a.pts:0};
+  });
+  const answered=p.answers.filter(Boolean).length;
+  const correctN=p.answers.filter(a=>a&&a.correct).length;
+  p.conn.send({t:'end', name:p.name, rank, of:HOST.players.size, score:p.score,
+    answered, correct:correctN, totalQ:HOST.questions.length, breakdown});
+}
+
+/* =========================================================
+   PLAYER
+========================================================= */
+const PL = { peer:null, conn:null, pid:null, name:'', gameNo:null, title:'',
+  q:-1, total:0, dur:20, qStart:0, answered:false, score:0, timer:null };
+
+function getPid(){
+  let id = localStorage.getItem('signal_pid');
+  if(!id){ id = 'p_'+Math.random().toString(36).slice(2,10); localStorage.setItem('signal_pid', id); }
+  return id;
+}
+
+function joinAsPlayer(code){
+  if(!code){ show('landing'); return; }
+  PL.pid = getPid();
+  PL.gameNo = code;
+  show('join');
+  $('joinGameNo').textContent = '#'+code;
+  $('joinTitle').textContent = 'Connecting…';
+  $('joinForm').classList.add('hide');
+  $('joinStatus').classList.remove('hide');
+  $('joinStatus').innerHTML='<span class="spin"></span> finding the game…';
+
+  PL.peer = new Peer({debug:1});
+  PL.peer.on('open', ()=>{
+    PL.conn = PL.peer.connect('signalqz-'+code, {reliable:true});
+    PL.conn.on('open', ()=>{ /* wait for hello */ });
+    PL.conn.on('data', d=> handlePlayerData(d));
+    PL.conn.on('close', ()=>{ /* host gone; stay on current screen */ });
+    PL.conn.on('error', ()=> joinFailed());
+    // timeout if no hello
+    setTimeout(()=>{ if(!PL.title){ joinFailed(); } }, 8000);
+  });
+  PL.peer.on('error', err=>{
+    if(err.type==='peer-unavailable'){ joinFailed(); }
+  });
+}
+function joinFailed(){
+  $('joinStatus').classList.remove('hide');
+  $('joinStatus').innerHTML = `Couldn't find game <b>#${PL.gameNo}</b>. Check the number with your host and try again. <br><br><button class="btn btn-ghost" onclick="location.href=location.origin+location.pathname">Back</button>`;
+}
+
+function handlePlayerData(d){
+  if(!d||!d.t) return;
+  if(d.t==='hello'){
+    PL.title=d.title; PL.gameNo=d.gameNo;
+    $('joinGameNo').textContent='#'+d.gameNo;
+    $('joinTitle').textContent=d.title;
+    $('joinStatus').classList.add('hide');
+    $('joinForm').classList.remove('hide');
+    // if we already have a name (rejoin), auto-send
+    const saved=sessionStorage.getItem('signal_name');
+    if(saved){ $('playerName').value=saved; submitName(); }
+  }
+  else if(d.t==='joined'){
+    show('wait'); setLive(true);
+    $('waitTitle').textContent="You're in!";
+    $('waitMsg').textContent="Hang tight — the host will start the game any moment.";
+  }
+  else if(d.t==='lobby'){
+    if($('screen-wait').classList.contains('hide')) show('wait');
+  }
+  else if(d.t==='question'){
+    PL.q=d.q; PL.total=d.total; PL.dur=d.duration; PL.qStart=d.qStart; PL.answered=false;
+    renderPlayerQuestion(d);
+  }
+  else if(d.t==='reveal'){
+    showReveal(d);
+  }
+  else if(d.t==='end'){
+    showReport(d);
+  }
+}
+
+function submitName(){
+  const n=$('playerName').value.trim();
+  if(!n){ $('playerName').focus(); return; }
+  PL.name=n; sessionStorage.setItem('signal_name', n);
+  PL.conn.send({t:'join', pid:PL.pid, name:n});
+}
+
+function renderPlayerQuestion(d){
+  show('pquestion'); setLive(true);
+  $('pQNum').textContent=`Question ${d.q+1} / ${d.total}`;
+  const wrap=$('pOpts'); wrap.innerHTML='';
+  d.options.forEach((o,idx)=>{
+    const b=document.createElement('button'); b.className=`opt o${idx}`;
+    b.innerHTML=`<span class="key">${'ABCD'[idx]}</span><span>${escapeHtml(o)}</span>`;
+    b.onclick=()=> pickAnswer(idx, b);
+    wrap.appendChild(b);
+  });
+  startPlayerTimer();
+}
+
+function startPlayerTimer(){
+  clearInterval(PL.timer);
+  const C=2*Math.PI*36; $('pRingArc').style.strokeDasharray=C;
+  const tick=()=>{
+    const elapsed=(Date.now()-PL.qStart)/1000;
+    const left=Math.max(0, PL.dur-elapsed);
+    $('pTime').textContent=Math.ceil(left);
+    $('pRingArc').style.strokeDashoffset=C*(1-left/PL.dur);
+    $('pBar').style.width=(left/PL.dur*100)+'%';
+    if(left<=0){ clearInterval(PL.timer); if(!PL.answered) lockOut(); }
+  };
+  tick(); PL.timer=setInterval(tick,200);
+}
+
+function pickAnswer(idx, btn){
+  if(PL.answered) return;
+  PL.answered=true; clearInterval(PL.timer);
+  const ms=Date.now()-PL.qStart;
+  [...$('pOpts').children].forEach(b=>{ b.disabled=true; b.classList.add('dim'); });
+  btn.classList.remove('dim'); btn.classList.add('picked');
+  PL.conn.send({t:'answer', pid:PL.pid, q:PL.q, choice:idx, ms});
+  // go to locked screen
+  $('lockedView').classList.remove('hide'); $('revealView').classList.add('hide');
+  show('plocked');
+}
+
+function lockOut(){
+  PL.answered=true;
+  [...$('pOpts').children].forEach(b=> b.disabled=true);
+  $('lockedView').classList.remove('hide'); $('revealView').classList.add('hide');
+  $('lockedView').querySelector('h2').textContent="Time's up";
+  $('lockedView').querySelector('p').textContent="No answer locked in this round. Waiting for the host…";
+  show('plocked');
+}
+
+function showReveal(d){
+  show('plocked');
+  $('lockedView').classList.add('hide');
+  const rv=$('revealView'); rv.classList.remove('hide');
+  const got=d.gotIt;
+  $('revealHead').textContent = got ? 'Correct!' : (d.yourChoice==null ? 'No answer' : 'Not quite');
+  $('revealHead').style.color = got ? 'var(--mint)' : 'var(--coral)';
+  $('revealPts').textContent = (got? '+' : '') + (d.pts||0);
+  $('revealRank').textContent = d.rank+ '/' + d.of;
+  $('revealTotal').textContent = d.total;
+}
+
+function showReport(d){
+  clearInterval(PL.timer); setLive(false);
+  show('report');
+  $('rName').textContent=d.name;
+  $('rRank').textContent=d.rank+'/'+d.of;
+  $('rScore').textContent=d.score;
+  const acc = d.answered? Math.round(d.correct/d.totalQ*100):0;
+  $('rAcc').textContent=acc+'%';
+  $('rCorrect').textContent=d.correct+'/'+d.totalQ;
+  const bd=$('rBreak'); bd.innerHTML='';
+  d.breakdown.forEach((b,i)=>{
+    let tag, detail;
+    if(b.yourIdx==null){ tag='<span class="tag skip">skipped</span>'; detail=`Answer: ${escapeHtml(b.correctText)}`; }
+    else if(b.correct){ tag='<span class="tag ok">correct</span>'; detail=`You: ${escapeHtml(b.yourText)}`; }
+    else { tag='<span class="tag no">wrong</span>'; detail=`You: ${escapeHtml(b.yourText)} · Answer: ${escapeHtml(b.correctText)}`; }
+    const row=document.createElement('div'); row.className='bdrow';
+    row.innerHTML=`<span class="ix">${i+1}</span><span class="qq"><div style="font-weight:600;margin-bottom:3px">${escapeHtml(truncate(b.q,90))}</div><div style="color:var(--muted);font-size:12px">${detail}</div></span>${tag}<span class="pt">${b.pts||0}</span>`;
+    bd.appendChild(row);
+  });
+}
+
+/* ---------- utils ---------- */
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function truncate(s,n){ s=String(s); return s.length>n? s.slice(0,n-1)+'…' : s; }
+</script>
+</body>
+</html>
